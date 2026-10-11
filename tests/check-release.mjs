@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+const read=(path)=>readFileSync(path,'utf8');
+const html=read('public/index.html');
+const js=read('public/assets/app.js');
+const css=read('public/assets/style.css');
+for(const p of ['public/manifest.webmanifest','public/service-worker.js','public/_headers','public/assets/icons/icon.svg'])assert.ok(existsSync(p), 'Missing '+p);
+for(const view of ['home','quests','chronicle','calendar','crew'])assert.ok(html.includes('id="view-'+view+'"'),'Missing view '+view);
+for(const text of ['PLAYABLE DEMO','id="characterMover"','data-world-action="trail"'])assert.ok(html.includes(text),'Missing scene element '+text);
+for(const label of ['function walkToPoint(','function worldAction(','localStorage','function renderCalendar'])assert.ok(js.includes(label),'Missing behavior '+label);
+assert.ok(css.includes('character-walking'),'Missing walk animation');
+assert.ok(html.includes('noindex'),'Search indexing guard missing');
+assert.ok(!html.includes('icon-192.png'),'Stale asset reference');
+console.log('Adventure Book source smoke checks passed');

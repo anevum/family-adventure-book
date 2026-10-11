@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+coverage/
+__pycache__/
+.pytest_cache/
+*.log
+*.bak
+tests/_artifacts/
