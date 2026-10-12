@@ -290,7 +290,7 @@
       const q=state.quests.find(q=>q.id===payload.id);if(!q)return;
       root.dataset.quest=q.id;
       if(type==='quest-details'){
-        markup=heading(q.category.toUpperCase()+' · '+q.duration,q.title,q.description)+(q.date?'<div class="quest-time-note">'+icon('calendar',16)+' '+prettyDate(q.date)+(q.time?' · '+prettyTime(q.time):'')+'</div>':'')+(q.participants?.length?'<div class="quest-time-note">'+icon('users',16)+' '+escapeHtml(q.participants.join(' & '))+'</div>':'')+questStepsMarkup(q)+
+        markup=heading(escapeHtml(q.category.toUpperCase()+' · '+q.duration),escapeHtml(q.title),escapeHtml(q.description))+(q.date?'<div class="quest-time-note">'+icon('calendar',16)+' '+prettyDate(q.date)+(q.time?' · '+prettyTime(q.time):'')+'</div>':'')+(q.participants?.length?'<div class="quest-time-note">'+icon('users',16)+' '+escapeHtml(q.participants.join(' & '))+'</div>':'')+questStepsMarkup(q)+
         `<div class="modal-note">✦ Complete this activity in real life, then add its story to your Adventure Book.<br><strong>Reward: +${q.xp} XP · +${Math.ceil(q.xp/4)} Tokens</strong></div>`+
         (q.status==='completed'?`<div class="modal-actions">${cancel}<button class="button button-primary" data-close-modal data-navigate="chronicle">See the book ${icon('book')}</button></div>`:
         `<div class="modal-actions">${cancel}<button type="button" class="button button-primary" data-complete-quest="${escapeHtml(q.id)}">We did it! ${icon('check')}</button></div>`);
