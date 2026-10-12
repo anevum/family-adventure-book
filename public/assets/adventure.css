@@ -6,3 +6,13 @@
 .quest-starter-actions{display:flex;flex-direction:column;gap:8px}
 .quest-starter-actions .button{justify-content:center;font-size:11px}
 .quest-starter-note{margin:0 0 24px;font-size:11px;line-height:1.6;color:#afc3af}
+.quest-time-note{display:flex;align-items:center;gap:8px;font-size:12px;color:#edd6a6;margin:-8px 0 16px}
+.quest-step-list{display:flex;flex-direction:column;gap:8px;margin:0 0 18px;padding:14px;border:1px solid #647569;border-radius:12px}
+.quest-step-list legend{padding:0 5px;font:normal 20px var(--serif)}
+.quest-step-list p{margin:0;font-size:12px;color:#c6d1be}
+#questStepProgress{font-size:11px;color:#e9c991}
+.quest-step{display:flex;gap:12px;align-items:center;min-height:38px;font-size:13px}
+.quest-step input{width:18px;height:18px;accent-color:#deba7a}
+.world-hearthlight .lamp-aura{opacity:1;filter:drop-shadow(0 0 19px #eec97b)}
+@media(max-width:1050px){.quest-starter{grid-template-columns:52px 1fr}.quest-starter-actions{grid-column:2;flex-direction:row;flex-wrap:wrap}.quest-starter-actions .button{flex:1 1 170px}}
+@media(max-width:600px){.quest-starter{grid-template-columns:1fr}.quest-starter-actions{grid-column:auto;flex-direction:column}}
