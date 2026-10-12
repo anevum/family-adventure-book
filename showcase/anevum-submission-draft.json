@@ -1,0 +1,23 @@
+{
+  "status": "owner-review-required",
+  "readyForSubmission": false,
+  "requiresOwnerApproval": true,
+  "slug": "evergrove-adventure-book",
+  "title": "The Adventure Book — Evergrove",
+  "summary": "Explore a hand-crafted storybook world, finish sample quests, and earn fictional rewards in a free interactive demo.",
+  "category": "games",
+  "description": "An illustrated interactive family-adventure prototype with a walkable 2.5D-style world, quests, badges, XP, and a sample Chronicle. Public showcase uses fictional data and temporary browser-tab storage only. No account creation, real family photos, or cloud sync.",
+  "sourceUrl": "https://github.com/anevum/family-adventure-book",
+  "demoUrl": null,
+  "license": null,
+  "freeToUse": true,
+  "aiDisclosure": "",
+  "humanContribution": "",
+  "openGates": [
+    "Owner approves public demo scope and trademark/name.",
+    "Owner selects copyright/licensing terms; public source currently has no license.",
+    "Real browser QA at mobile and desktop widths with keyboard and reduced motion.",
+    "Create an owner-approved preview URL and verify the actual runtime.",
+    "Owner confirms accurate AI and human contribution disclosures and authorizes publication."
+  ]
+}

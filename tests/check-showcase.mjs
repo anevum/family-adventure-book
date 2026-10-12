@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import {readFileSync,existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {resolve} from 'node:path';
+execFileSync(process.execPath,['scripts/build-showcase.mjs'],{stdio:'pipe'});
+const read=p=>readFileSync(resolve('dist-showcase',p),'utf8');
+const html=read('index.html'),js=read('assets/app.js'),css=read('assets/style.css'),wrapper=read('assets/showcase.css'),headers=read('_headers');
+for(const f of ['index.html','assets/app.js','assets/style.css','assets/showcase.css','assets/icons/icon.svg','_headers','robots.txt'])
+  assert.ok(existsSync(resolve('dist-showcase',f)),'Missing '+f);
+assert.match(html,/ANEVUM PLAYABLE SHOWCASE/);
+assert.match(html,/Fictional adventurers/);
+assert.match(html,/Back to ANEVUM/);
+assert.match(html,/noindex, nofollow, noarchive/);
+assert.match(html,/href="assets\/showcase\.css"/);
+assert.doesNotMatch(html,/rel="manifest"|apple-mobile-web-app/);
+for(const view of ['home','quests','chronicle','calendar','crew'])
+ assert.ok(html.includes('id="view-'+view+'"'),'Missing '+view);
+assert.ok(css.includes('character-walking'));
+for(const method of ['function walkToPoint(','function worldAction(','function renderCalendar(','function renderChronicle(','function renderQuests('])
+ assert.ok(js.includes(method),method);
+assert.match(wrapper,/max-width:650px/);
+assert.match(wrapper,/:focus-visible/);
+assert.match(js,/const SHOWCASE_MODE = true/);
+assert.match(js,/const STORAGE = sessionStorage/);
+assert.match(js,/anevum_evergrove_showcase_session_v1/);
+assert.doesNotMatch(js,/localStorage/);
+assert.match(js,/if\(SHOWCASE_MODE && \['quest','memory','event','crew','edit-member'\].includes\(type\)\)/);
+assert.match(js,/if\(SHOWCASE_MODE && form.id!=='completeQuestForm'\)/);
+assert.match(js,/SAMPLE ADVENTURE COMPLETE/);
+assert.match(js,/if\(SHOWCASE_MODE\)return null/);
+assert.match(js,/if\(!SHOWCASE_MODE&&'serviceWorker'/);
+assert.match(headers,/connect-src 'none'/);
+assert.match(headers,/worker-src 'none'/);
+assert.match(headers,/form-action 'none'/);
+assert.match(headers,/noindex/);
+assert.ok(!existsSync('dist-showcase/service-worker.js'));
+assert.ok(!existsSync('dist-showcase/manifest.webmanifest'));
+const draft=JSON.parse(readFileSync('showcase/anevum-submission-draft.json','utf8'));
+assert.equal(draft.readyForSubmission,false);
+assert.equal(draft.requiresOwnerApproval,true);
+assert.equal(draft.demoUrl,null);
+assert.equal(draft.license,null);
+assert.equal(draft.category,'games');
+assert.ok(draft.openGates.length>=3);
+console.log('Showcase build privacy and playable source tests passed');

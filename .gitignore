@@ -9,3 +9,5 @@ __pycache__/
 *.log
 *.bak
 tests/_artifacts/
+
+dist-showcase/
