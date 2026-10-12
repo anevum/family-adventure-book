@@ -222,6 +222,20 @@
 
     <section class="view" id="view-quests" aria-label="Adventure quests" hidden>
       <div class="page-topline"><div><div class="eyebrow">YOUR ADVENTURE BOARD</div><h1 class="section-title">Go make a <em>story.</em></h1><p>Little quests, big memories. Pick something to do together in real life.</p></div><button class="button button-primary" data-modal="quest"><span data-icon="plus"></span> Make a quest</button></div>
+      <div class="quest-starter" aria-label="Plan your first real adventure">
+        <div class="quest-starter-mark" aria-hidden="true">✧</div>
+        <div class="quest-starter-copy">
+          <span class="eyebrow">EVERGROVE · THE FIRST REAL CHAPTER</span>
+          <h2>Begin with a quiet evening.</h2>
+          <p>Choose a cozy adventure, make it your own, then put the phone away. Return afterward to collect the memory and light up the world.</p>
+        </div>
+        <div class="quest-starter-actions">
+          <button type="button" class="button button-primary" data-modal="quest" data-quest-template="cozy-evening"><span data-icon="heart"></span> Plan a cozy evening</button>
+          <button type="button" class="button button-soft" id="importAdventureBtn"><span data-icon="download"></span> Import a private quest</button>
+          <input id="importAdventureFile" type="file" accept=".json,application/json" hidden aria-label="Select a private Evergrove adventure JSON file">
+        </div>
+      </div>
+      <p class="quest-starter-note">This is a local-save prototype, not a private cloud account. Personal details stay in this browser; import does not synchronize Google Calendar. Do not add irreplaceable photos or sensitive details.</p>
       <div class="quest-toolbar"><div class="tab-filters" id="questFilters" role="group" aria-label="Filter quests"><button class="filter-chip is-active" data-filter="all">All quests</button><button class="filter-chip" data-filter="ready">Ready</button><button class="filter-chip" data-filter="planned">Planned</button><button class="filter-chip" data-filter="completed">Completed</button></div><span class="quest-toolbar-note"><span data-icon="sparkles"></span> Every adventure counts</span></div>
       <div class="quest-grid" id="questGrid"></div>
       <div class="empty-state" id="questEmpty" hidden><span>✦</span><h3>Nothing here just yet.</h3><p>Try another filter or add an adventure of your own.</p></div>
