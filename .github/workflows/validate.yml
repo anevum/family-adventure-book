@@ -14,3 +14,9 @@ jobs:
       - run: node tests/check-release.mjs
       - run: node tests/check-showcase.mjs
       - run: node --check dist-showcase/assets/app.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evergrove-anevum-showcase
+          path: dist-showcase/
+          retention-days: 14
+          if-no-files-found: error

@@ -1,5 +1,13 @@
 # The Adventure Book — Evergrove
 
+## ANEVUM Creator V1 showcase candidate
+
+An isolated Evergrove public-demo build is now under review for ANEVUM's first creator submission. It is **not a public release** and does not change the original family prototype, which remains in `public/`.
+
+Use `node scripts/build-showcase.mjs` to generate the privacy-safe `dist-showcase/` static directory. Use `node tests/check-showcase.mjs` for build and policy checks. The source CI also uploads a downloadable ZIP artifact for inspection. The demo keeps animated exploration and sample quests but blocks personal photo, memory, event and crew entry and uses its own session-only browser state.
+
+See [ANEVUM showcase scope and release gates](docs/ANEVUM_SHOWCASE.md) and [nonpublishing project draft](showcase/anevum-submission-draft.json). Review the licensing and truthful AI/human contribution disclosures before staging submissions. No Cloudflare or ANEVUM production publication is authorized by this branch.
+
 Independent animated family-adventure-game prototype. **No ANEVUM or RHEN application code or infrastructure is shared.** The intended address is `adventurebook.anevum.com`, pending Cloudflare setup.
 
 ## Status — v0.2, public source / local-save demo
