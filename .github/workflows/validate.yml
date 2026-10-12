@@ -1,7 +1,7 @@
-name: Validate Adventure Book source
+name: Validate Evergrove source and ANEVUM showcase
 on:
   push:
-    branches: [main]
+    branches: [main, 'build/**']
   pull_request:
 jobs:
   source-smoke:
@@ -12,3 +12,5 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/check-release.mjs
+      - run: node tests/check-showcase.mjs
+      - run: node --check dist-showcase/assets/app.js
