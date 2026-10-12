@@ -10,12 +10,31 @@
   const escapeHtml = (v='') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const prettyDate = (d, opt={month:'long',day:'numeric',year:'numeric'}) => d ? new Date(`${d}T12:00:00`).toLocaleDateString(undefined,opt) : '';
   const colorMap = {moss:'#7ba999',coral:'#c58b79',lavender:'#a498be',blue:'#7cacc2',gold:'#d2ae73'};
+  // Generic quest templates only. Personal adventure details belong in local browser saves.
+  const cozyEvening = {
+    title:'A Cozy Night In',
+    description:'Share a favorite dessert, settle in for a movie, and make time for relaxing shoulder rubs. Enjoy the evening in whatever order works.',
+    category:'Together',duration:'2 hours',audience:'adults',icon:'heart',
+    steps:[
+      {label:'Enjoy dessert together',done:false},
+      {label:'Trade relaxing shoulder rubs',done:false},
+      {label:'Settle in for a movie',done:false}
+    ]
+  };
+  const prettyTime = time => /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(time||'')
+    ? new Date('2000-01-01T'+time+':00').toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}) : '';
+  const validCalendarDate = date => {
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return false;
+    const d=new Date(date+'T12:00:00');
+    return !Number.isNaN(d.getTime()) && [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')===date;
+  };
   const badgeRules = [
     {id:'first-quest',name:'The First Step',description:'Complete your first adventure',emoji:'✦',check:s=>s.quests.filter(q=>q.status==='completed').length>=1},
     {id:'storykeeper',name:'Storykeeper',description:'Save your first memory',emoji:'❧',check:s=>s.memories.length>=1},
     {id:'three-quests',name:'Curious Wanderers',description:'Complete three adventures',emoji:'✺',check:s=>s.quests.filter(q=>q.status==='completed').length>=3},
     {id:'five-memories',name:'A Thousand Stories',description:'Save five memories',emoji:'✿',check:s=>s.memories.length>=5},
-    {id:'three-crew',name:'Together We Go',description:'Welcome a third adventurer',emoji:'♧',check:s=>s.crew.length>=3}
+    {id:'three-crew',name:'Together We Go',description:'Welcome a third adventurer',emoji:'♧',check:s=>s.crew.length>=3},
+    {id:'hearthlight',name:'Hearthlight',description:'Finish a cozy evening adventure together',emoji:'♡',check:s=>s.quests.some(q=>q.template==='cozy-evening'&&q.status==='completed')}
   ];
   const iconPaths = {
     home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -148,6 +167,7 @@
     $('#headerTokens').textContent=state.tokens;
     $('#homeLevel').textContent=level;
     document.body.classList.toggle('world-expanded',level>=4);
+    document.body.classList.toggle('world-hearthlight',state.badges.includes('hearthlight'));
     const coat=$('.character-coat');if(coat)coat.style.fill=colorMap[state.crew[0]?.color]||colorMap.moss;
     $('#familyLevelInline').textContent=level;
     $('#homeMemories').textContent=state.memories.length;
@@ -157,7 +177,7 @@
     $('#homeProgressArc').setAttribute('stroke-dasharray',`${progress/90*201} 201`);
     $('#levelProgressText').textContent=`${progress} / 90 XP to next level`;
     $('#worldChapter').textContent=String(Math.max(1,Math.ceil(state.memories.length/8))).padStart(2,'0');
-    const q=state.quests.find(q=>q.status==='ready')||state.quests.find(q=>q.status==='planned');
+    const q=state.quests.find(q=>q.status==='planned'&&q.date>=todayStr())||state.quests.find(q=>q.status==='ready')||state.quests.find(q=>q.status==='planned');
     $('#featuredQuestTitle').textContent=q?.title||'Dream up your next adventure';
     $('#featuredQuestDesc').textContent=q?.description||'Create a new quest and add a memory to your story.';
     $('#featuredQuestMeta').textContent=q?`${q.duration}   ·   +${q.xp} XP`:'The possibilities are endless';
@@ -165,13 +185,13 @@
     const m=state.memories[0];
     $('#featuredMemoryTitle').textContent=m?.title||'Your adventure book awaits';
     $('#featuredMemoryDesc').textContent=m?m.body.slice(0,83).replace(/\s+/g,' ')+'…':'Save a moment that made you smile.';
-    const upcoming=state.events.filter(e=>e.date>=todayStr()).sort((a,b)=>a.date.localeCompare(b.date))[0];
+    const upcoming=state.events.filter(e=>e.date>=todayStr()).sort((a,b)=>(a.date+'T'+(a.time||'00:00')).localeCompare(b.date+'T'+(b.time||'00:00')))[0];
     const due=upcoming?.date||dayAt(6),dt=new Date(`${due}T12:00:00`);
     $('#upcomingDay').textContent=dt.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();
     $('#upcomingDate').textContent=dt.getDate();
     $('#upcomingMonth').textContent=dt.toLocaleDateString(undefined,{month:'short'}).toUpperCase();
     $('#upcomingTitle').textContent=upcoming?.title||'A day for making memories';
-    $('#upcomingDesc').textContent=upcoming?.notes||'Start by putting something lovely on your calendar.';
+    $('#upcomingDesc').textContent=upcoming?(upcoming.time?prettyTime(upcoming.time)+' · ':'')+(upcoming.notes||'An adventure to look forward to.'):'Start by putting something lovely on your calendar.';
     const lead=state.crew[0];
     $('.header-profile .mini-avatar').textContent=(lead?.name||'A').charAt(0).toUpperCase();
     $('.header-profile .mini-avatar').className=`mini-avatar avatar-${lead?.color||'moss'}`;
@@ -182,7 +202,7 @@
     $('#questEmpty').hidden=arr.length>0;
     $('#questGrid').innerHTML=arr.map(q=>{
       const symbols={tent:'⌂',sun:'☼',coffee:'☕',compass:'✧',heart:'♡',camera:'▣',star:'✦',leaf:'❧',palette:'✎',gift:'✣'};
-      return `<article class="quest-card"><div class="quest-art"><span class="quest-symbol" aria-hidden="true">${symbols[q.icon]||'✧'}</span><span class="quest-status">${escapeHtml(q.status)}</span></div><div class="quest-content"><div class="quest-type">${escapeHtml(q.category)}</div><h3>${escapeHtml(q.title)}</h3><p>${escapeHtml(q.description)}</p><div class="quest-tags"><span>${icon('clock',14)} ${escapeHtml(q.duration)}</span><span>${icon('users',14)} Family quest</span></div><div class="quest-card-bottom"><span class="quest-xp">✦ +${q.xp} XP</span><button class="quest-do" data-quest-action="${escapeHtml(q.id)}">${q.status==='completed'?'See adventure':'Open quest'} →</button></div></div></article>`;
+      return `<article class="quest-card"><div class="quest-art"><span class="quest-symbol" aria-hidden="true">${symbols[q.icon]||'✧'}</span><span class="quest-status">${escapeHtml(q.status)}</span></div><div class="quest-content"><div class="quest-type">${escapeHtml(q.category)}</div><h3>${escapeHtml(q.title)}</h3><p>${escapeHtml(q.description)}</p><div class="quest-tags"><span>${icon('clock',14)} ${escapeHtml(q.duration)}</span><span>${icon('users',14)} ${q.audience==='adults'?'Adults':'Family quest'}</span>${q.date?'<span>'+icon('calendar',14)+' '+prettyDate(q.date,{month:'short',day:'numeric'})+(q.time?' · '+prettyTime(q.time):'')+'</span>':''}</div><div class="quest-card-bottom"><span class="quest-xp">✦ +${q.xp} XP</span><button class="quest-do" data-quest-action="${escapeHtml(q.id)}">${q.status==='completed'?'See adventure':'Open quest'} →</button></div></div></article>`;
     }).join('');
   }
   function renderChronicle(){
@@ -210,8 +230,8 @@
     }
     $('#calendarDays').innerHTML=cells.join('');
     $('#selectedDateTitle').textContent=prettyDate(selectedDay,{weekday:'long',month:'short',day:'numeric'});
-    const dayEvents=state.events.filter(e=>e.date===selectedDay),scheduled=state.quests.filter(q=>q.date===selectedDay&&q.status!=='completed'&&!dayEvents.some(e=>e.title===q.title));
-    $('#dayEvents').innerHTML=dayEvents.map(e=>`<div class="day-event"><strong>${escapeHtml(e.title)}</strong><small>${escapeHtml(e.type)}${e.notes?' · '+escapeHtml(e.notes):''}</small></div>`).join('')+scheduled.map(q=>`<div class="day-event"><strong>${escapeHtml(q.title)}</strong><small>Quest · +${q.xp} XP</small></div>`).join('') || '<div class="day-event-empty">A quiet page in the calendar. The perfect place for a new memory.</div>';
+    const dayEvents=state.events.filter(e=>e.date===selectedDay),scheduled=state.quests.filter(q=>q.date===selectedDay&&q.status!=='completed'&&!dayEvents.some(e=>e.questId===q.id||(!e.questId&&e.title===q.title)));
+    $('#dayEvents').innerHTML=dayEvents.map(e=>`<div class="day-event"><strong>${escapeHtml(e.title)}</strong><small>${escapeHtml(e.type)}${e.time?' · '+escapeHtml(prettyTime(e.time)):''}${e.questId&&state.quests.some(q=>q.id===e.questId&&q.status==='completed')?' · Completed':''}${e.notes?' · '+escapeHtml(e.notes):''}</small></div>`).join('')+scheduled.map(q=>`<div class="day-event"><strong>${escapeHtml(q.title)}</strong><small>Quest${q.time?' · '+escapeHtml(prettyTime(q.time)):''} · +${q.xp} XP</small></div>`).join('') || '<div class="day-event-empty">A quiet page in the calendar. The perfect place for a new memory.</div>';
   }
   function characterMarkup(color){
     const c=colorMap[color]||colorMap.moss;
@@ -224,6 +244,13 @@
     $('#crewGrid').innerHTML=state.crew.map((p,i)=>`<article class="crew-card"><div class="avatar-stage">${characterMarkup(p.color)}</div><div class="crew-card-head"><div><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.title||'Curious Adventurer')}</p></div><span class="crew-level">LVL ${levelOf(p.xp||0)}</span></div><div class="crew-card-footer"><span>✦ ${p.xp||0} XP</span><button class="text-button" data-edit-member="${escapeHtml(p.id)}">Customize ${icon('arrow-right',14)}</button></div></article>`).join('');
   }
   function renderAll(){renderHome();renderQuests();renderChronicle();renderCalendar();renderCrew();}
+  function questStepsMarkup(q){
+    if(!Array.isArray(q.steps)||!q.steps.length)return '';
+    const done=q.steps.filter(step=>step.done).length;
+    return '<fieldset class="quest-step-list"><legend>Little moments along the way</legend><p>Gentle reminders. Enjoy these together in any order.</p><span id="questStepProgress">'+done+' of '+q.steps.length+' moments noted</span>'+
+      q.steps.map((step,i)=>'<label class="quest-step"><input type="checkbox" data-quest-step="'+escapeHtml(q.id)+'" data-step-index="'+i+'" '+(step.done?'checked':'')+(q.status==='completed'?' disabled':'')+'><span>'+escapeHtml(step.label)+'</span></label>').join('')+
+      '</fieldset>';
+  }
   function openModal(type,payload={}){
     lastFocus=document.activeElement;
     const root=$('#modalContent'),backdrop=$('#modalBackdrop');selectedAvatarColor=payload.color||'moss';
@@ -235,7 +262,7 @@
       markup=heading('CREATE SOMETHING WONDERFUL','Make a new quest','Dream up a family adventure. It can be as simple or spectacular as you like.')+
       `<form id="questForm" class="modal-form">${field('questTitle','Adventure name','A magical afternoon')}`+
       `<div class="form-field"><label for="questDescription">What will you do?</label><textarea id="questDescription" name="questDescription" maxlength="450" required placeholder="Describe your idea so everyone knows what to do..."></textarea></div>`+
-      `<div class="form-grid"><div class="form-field"><label for="questCategory">Category</label><select id="questCategory"><option>Explore</option><option>Together</option><option>At Home</option><option>Creative</option><option>Learn</option><option>Surprise</option></select></div><div class="form-field"><label for="questDuration">Time needed</label><select id="questDuration"><option>30 minutes</option><option>1 hour</option><option>2 hours</option><option>Half a day</option><option>Full day</option></select></div></div><div class="form-field"><label for="questDate">Date (optional)</label><input id="questDate" type="date"></div><div class="modal-note">New adventures earn 60 XP and 15 Adventure Tokens when completed.</div><div class="modal-actions">${cancel}<button type="submit" class="button button-primary">Create quest ${icon('plus')}</button></div></form>`;
+      `<div class="form-grid"><div class="form-field"><label for="questCategory">Category</label><select id="questCategory"><option>Explore</option><option>Together</option><option>At Home</option><option>Creative</option><option>Learn</option><option>Surprise</option></select></div><div class="form-field"><label for="questDuration">Time needed</label><select id="questDuration"><option>30 minutes</option><option>1 hour</option><option>2 hours</option><option>Half a day</option><option>Full day</option></select></div></div><div class="form-grid"><div class="form-field"><label for="questDate">Date (optional)</label><input id="questDate" type="date"></div><div class="form-field"><label for="questTime">Start time (optional)</label><input id="questTime" type="time"></div></div><div class="form-hint">Stored only in this browser. This demo does not sync with Google Calendar.</div><div class="modal-note">New adventures earn 60 XP and 15 Adventure Tokens when completed.</div><div class="modal-actions">${cancel}<button type="submit" class="button button-primary">Create quest ${icon('plus')}</button></div></form>`;
     }
     if(type==='memory'){
       markup=heading('EVERY LITTLE MOMENT MATTERS','Keep a memory',"Add a page to your family's Chronicle. Even the quiet days deserve a story.")+
@@ -248,7 +275,7 @@
     if(type==='event'){
       markup=heading('MAKE A LITTLE ROOM FOR WONDER','Plan a day together','A family outing, annual tradition, birthday, or spontaneous new plan.')+
       `<form id="eventForm" class="modal-form">${field('eventTitle','What are you planning?','A picnic at the park')}`+
-      `<div class="form-grid"><div class="form-field"><label for="eventDate">Date</label><input id="eventDate" type="date" required value="${selectedDay}"></div><div class="form-field"><label for="eventType">Type</label><select id="eventType"><option>Adventure</option><option>Tradition</option><option>Birthday</option><option>Family time</option><option>Other</option></select></div></div><div class="form-field"><label for="eventNotes">Notes (optional)</label><textarea id="eventNotes" maxlength="400" placeholder="A place, a reminder, something to bring..."></textarea></div><div class="modal-actions">${cancel}<button type="submit" class="button button-primary">Add to calendar ${icon('calendar')}</button></div></form>`;
+      `<div class="form-grid"><div class="form-field"><label for="eventDate">Date</label><input id="eventDate" type="date" required value="${selectedDay}"></div><div class="form-field"><label for="eventTime">Start time (optional)</label><input id="eventTime" type="time"></div><div class="form-field"><label for="eventType">Type</label><select id="eventType"><option>Adventure</option><option>Tradition</option><option>Birthday</option><option>Family time</option><option>Other</option></select></div></div><div class="form-field"><label for="eventNotes">Notes (optional)</label><textarea id="eventNotes" maxlength="400" placeholder="A place, a reminder, something to bring..."></textarea></div><div class="modal-actions">${cancel}<button type="submit" class="button button-primary">Add to calendar ${icon('calendar')}</button></div></form>`;
     }
     if(type==='crew'||type==='edit-member'){
       const p=type==='edit-member'?state.crew.find(c=>c.id===payload.id):null;
@@ -263,7 +290,7 @@
       const q=state.quests.find(q=>q.id===payload.id);if(!q)return;
       root.dataset.quest=q.id;
       if(type==='quest-details'){
-        markup=heading(q.category.toUpperCase()+' · '+q.duration,q.title,q.description)+
+        markup=heading(q.category.toUpperCase()+' · '+q.duration,q.title,q.description)+(q.date?'<div class="quest-time-note">'+icon('calendar',16)+' '+prettyDate(q.date)+(q.time?' · '+prettyTime(q.time):'')+'</div>':'')+(q.participants?.length?'<div class="quest-time-note">'+icon('users',16)+' '+escapeHtml(q.participants.join(' & '))+'</div>':'')+questStepsMarkup(q)+
         `<div class="modal-note">✦ Complete this activity in real life, then add its story to your Adventure Book.<br><strong>Reward: +${q.xp} XP · +${Math.ceil(q.xp/4)} Tokens</strong></div>`+
         (q.status==='completed'?`<div class="modal-actions">${cancel}<button class="button button-primary" data-close-modal data-navigate="chronicle">See the book ${icon('book')}</button></div>`:
         `<div class="modal-actions">${cancel}<button type="button" class="button button-primary" data-complete-quest="${escapeHtml(q.id)}">We did it! ${icon('check')}</button></div>`);
@@ -278,6 +305,15 @@
     }
     if(!markup)return;
     root.innerHTML=markup;backdrop.hidden=false;document.body.style.overflow='hidden';
+    root.dataset.questTemplate=type==='quest'?(payload.template||''):'';
+    if(type==='quest'&&payload.template==='cozy-evening'){
+      $('#questTitle').value=cozyEvening.title;
+      $('#questDescription').value=cozyEvening.description;
+      $('#questCategory').value=cozyEvening.category;
+      $('#questDuration').value=cozyEvening.duration;
+      $('#questDate').value=todayStr();
+      $('#questTime').value='22:00';
+    }
     hydrateIcons(root);playSound('open');
     if(type==='edit-member'){
       const p=state.crew.find(c=>c.id===payload.id);if(p){$('#crewName').value=p.name;$('#crewTitle').value=p.title||'';}
@@ -313,9 +349,13 @@
     event.preventDefault();const form=event.target;
     if(form.id==='questForm'){
       const title=$('#questTitle').value.trim(),description=$('#questDescription').value.trim();if(!title||!description)return;
-      const category=$('#questCategory').value,duration=$('#questDuration').value,date=$('#questDate').value||null;
-      state.quests.unshift({id:newId('q'),title,description,category,duration,date,xp:60,icon:({Explore:'compass',Together:'heart','At Home':'coffee',Creative:'palette',Learn:'star',Surprise:'gift'})[category],status:date?'planned':'ready'});
-      if(date)state.events.push({id:newId('e'),title,date,type:'Adventure',notes:'An original family quest'});
+      const category=$('#questCategory').value,duration=$('#questDuration').value,date=$('#questDate').value||null,time=$('#questTime').value||null;
+      if((date&&!validCalendarDate(date))||(time&&(!date||!prettyTime(time)))){toast('Check the date and time','Choose a valid date before adding a start time.','!');return;}
+      const template=$('#modalContent').dataset.questTemplate==='cozy-evening'?'cozy-evening':null;
+      const q={id:newId('q'),title,description,category,duration,date,time,xp:60,icon:({Explore:'compass',Together:'heart','At Home':'coffee',Creative:'palette',Learn:'star',Surprise:'gift'})[category],status:date?'planned':'ready'};
+      if(template){q.template=template;q.audience='adults';q.steps=cozyEvening.steps.map(step=>({...step}));}
+      state.quests.unshift(q);
+      if(date)state.events.push({id:newId('e'),questId:q.id,title,date,time,type:'Adventure',notes:'Planned from the adventure board'});
       save();closeModal();navigate('quests');toast('Quest added!','The next chapter starts whenever you are ready.');
     }
     if(form.id==='memoryForm'){
@@ -326,8 +366,8 @@
       award(10,3);const fresh=checkBadges();save();currentMemory=0;closeModal();navigate('chronicle');rewardBurst();playSound('reward');toast('A memory saved!','+10 XP · +3 Adventure Tokens');fresh.forEach((b,i)=>setTimeout(()=>toast(`Badge unlocked: ${b.name}`,b.description,b.emoji),650*(i+1)));
     }
     if(form.id==='eventForm'){
-      const title=$('#eventTitle').value.trim(),date=$('#eventDate').value,type=$('#eventType').value,notes=$('#eventNotes').value.trim();if(!title||!safeDate(date))return;
-      state.events.push({id:newId('e'),title,date,type,notes});selectedDay=date;calendarCursor=new Date(`${date}T12:00:00`);calendarCursor.setDate(1);
+      const title=$('#eventTitle').value.trim(),date=$('#eventDate').value,time=$('#eventTime').value||null,type=$('#eventType').value,notes=$('#eventNotes').value.trim();if(!title||!validCalendarDate(date)||(time&&!prettyTime(time)))return;
+      state.events.push({id:newId('e'),title,date,time,type,notes});selectedDay=date;calendarCursor=new Date(`${date}T12:00:00`);calendarCursor.setDate(1);
       save();closeModal();navigate('calendar');toast('Date saved!','A new plan to look forward to.');
     }
     if(form.id==='crewForm'){
@@ -345,9 +385,39 @@
       const body=$('#completedNote').value.trim()||`We completed ${q.title.toLowerCase()} together. Another little moment to remember - and another adventure waiting around the corner.`;
       state.memories.unshift({id:newId('m'),title:q.title,body,date,icon:'✦',photo,demo:false,questId:q.id});
       const bonus=Math.ceil(q.xp/4);award(q.xp,bonus);
-      state.crew.forEach(p=>p.xp=(p.xp||0)+Math.round(q.xp/state.crew.length));
+      // Local family XP is awarded. Personal import participants are not demo Crew accounts.
+      if(!q.participants?.length)state.crew.forEach(p=>p.xp=(p.xp||0)+Math.round(q.xp/state.crew.length));
       const fresh=checkBadges();save();currentMemory=0;closeModal();navigate('chronicle');rewardBurst();playSound('reward');toast('Adventure complete!',`+${q.xp} XP · +${bonus} Tokens`);fresh.forEach((b,i)=>setTimeout(()=>toast(`Badge unlocked: ${b.name}`,b.description,b.emoji),950*(i+1)));
     }
+  }
+  async function importAdventure(file){
+    if(!file)return;
+    if(file.size>16384){toast('Adventure file too large','Use a small Evergrove .json file.','!');return;}
+    try {
+      const data=JSON.parse(await file.text());
+      if(!data||data.schema!=='evergrove-adventure-v1')throw new Error('Not an Evergrove adventure file');
+      if(typeof data.title!=='string'||!data.title.trim()||data.title.length>90||
+         typeof data.description!=='string'||!data.description.trim()||data.description.length>450||
+         !validCalendarDate(data.date)||!prettyTime(data.time||''))throw new Error('Adventure title, description, date or time is invalid');
+      const categories=['Explore','Together','At Home','Creative','Learn','Surprise'];
+      if(!categories.includes(data.category)||typeof data.duration!=='string'||!['30 minutes','1 hour','2 hours','Half a day','Full day'].includes(data.duration))throw new Error('Unsupported adventure type or duration');
+      if(!Array.isArray(data.steps)||!data.steps.length||data.steps.length>8||data.steps.some(step=>typeof step!=='string'||!step.trim()||step.length>90))throw new Error('Include 1–8 short activity steps');
+      if(data.participants!==undefined&&(!Array.isArray(data.participants)||data.participants.length>6||data.participants.some(p=>typeof p!=='string'||!p.trim()||p.length>45)))throw new Error('Participant list is invalid');
+      const q={
+        id:newId('q'),title:data.title.trim(),description:data.description.trim(),
+        category:data.category,duration:data.duration,date:data.date,time:data.time,
+        xp:60,icon:({Explore:'compass',Together:'heart','At Home':'coffee',Creative:'palette',Learn:'star',Surprise:'gift'})[data.category],
+        status:'planned',audience:data.audience==='adults'?'adults':'family',
+        steps:data.steps.map(label=>({label:label.trim(),done:false})),
+        participants:(data.participants||[]).map(p=>p.trim()),
+        template:data.template==='cozy-evening'?'cozy-evening':null
+      };
+      state.quests.unshift(q);
+      state.events.push({id:newId('e'),questId:q.id,title:q.title,date:q.date,time:q.time,type:'Adventure',notes:'Planned from an imported quest (device only)'});
+      save();questFilter='all';selectedDay=q.date;
+      calendarCursor=new Date(q.date+'T12:00:00');calendarCursor.setDate(1);
+      navigate('quests');toast('Adventure imported','Saved in this browser only. No calendar or cloud sync.');
+    } catch(err){toast('Import failed',err.message||'Check your adventure file.','!');}
   }
   function exportProgress(){
     const payload={...state,exportedAt:new Date().toISOString(),warning:'Local playable demo data; not a secure family backup service.'};
@@ -366,7 +436,7 @@
       const close=e.target.closest('[data-close-modal]');
       if(nav){if(close)closeModal();navigate(nav.dataset.navigate);return;}
       if(close){closeModal();return;}
-      const modal=e.target.closest('[data-modal]');if(modal){openModal(modal.dataset.modal);return;}
+      const modal=e.target.closest('[data-modal]');if(modal){openModal(modal.dataset.modal,{template:modal.dataset.questTemplate||''});return;}
       const filter=e.target.closest('[data-filter]');if(filter){questFilter=filter.dataset.filter;renderQuests();playSound();return;}
       const quest=e.target.closest('[data-quest-action]');if(quest){if(quest.dataset.questAction)openModal('quest-details',{id:quest.dataset.questAction});else openModal('quest');return;}
       const completion=e.target.closest('[data-complete-quest]');if(completion){openModal('complete-quest',{id:completion.dataset.completeQuest});return;}
@@ -377,10 +447,23 @@
       const world=e.target.closest('[data-world-action]');if(world){worldAction(world.dataset.worldAction,e);return;}
       if(e.target===$('#modalBackdrop'))closeModal();
     });
+    document.addEventListener('change',e=>{
+      const box=e.target.closest('[data-quest-step]');if(!box)return;
+      const q=state.quests.find(q=>q.id===box.dataset.questStep),index=Number(box.dataset.stepIndex);
+      if(!q||q.status==='completed'||!Array.isArray(q.steps)||!q.steps[index])return;
+      q.steps[index].done=box.checked;save();
+      const count=$('#questStepProgress');if(count)count.textContent=q.steps.filter(step=>step.done).length+' of '+q.steps.length+' moments noted';
+    });
     document.addEventListener('submit',e=>{if(e.target?.closest('.modal-form'))handleFormSubmit(e);});
     document.addEventListener('keydown',e=>{
       if(e.key==='Escape'&&!$('#modalBackdrop').hidden)closeModal();
       const active=e.target.closest('[data-world-action]');if(active&&(e.key==='Enter'||e.key===' ')){e.preventDefault();worldAction(active.dataset.worldAction);}
+    });
+    $('#importAdventureBtn').addEventListener('click',()=>$('#importAdventureFile').click());
+    $('#importAdventureFile').addEventListener('change',async e=>{
+      const file=e.target.files?.[0];
+      if(file)await importAdventure(file);
+      e.target.value='';
     });
     $('#themeToggle').addEventListener('click',()=>{state.theme=state.theme==='night'?'dusk':'night';save();applyTheme();playSound('open');});
     $('#soundToggle').addEventListener('click',()=>{state.sound=!state.sound;save();applyTheme();if(state.sound)playSound('reward');else toast('Sound off','A quieter little world.');});
