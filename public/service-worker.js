@@ -1,6 +1,6 @@
 /* Demo shell only. No account data or personal media belongs in this cache. */
-const CACHE='adventure-book-demo-shell-v4';
-const ASSETS=['./','./index.html','./assets/style.css','./assets/app.js','./assets/icons/icon.svg','./manifest.webmanifest'];
+const CACHE='adventure-book-demo-shell-v5';
+const ASSETS=['./','./index.html','./assets/style.css','./assets/adventure.css','./assets/app.js','./assets/icons/icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
