@@ -36,3 +36,6 @@ Public GitHub source **does not imply an open-source license or permission to re
 References: https://github.com/anevum/anevum-web/issues/325 (V1 engineering), https://github.com/anevum/anevum-web/issues/329 (publishing), https://github.com/anevum/anevum-web/pull/339 (current creator-platform source).
 
 V5/RHEN historical archive and ANEVUM production database are not part of this repo or this release candidate.
+
+## Local browser regression evidence
+A dedicated CI browser job uses headless Chromium to render the isolated generated output at 390px and 1440px. It captures original world and sample-quest screenshots, checks no horizontal overflow, confirms personal-memory forms stay blocked, completes a fictional quest, validates session-only XP and private storage isolation, and fails on browser exceptions or external network requests. CI screenshots are owner-review evidence, **not** a substitute for human mobile/desktop approval or trademark/licensing sign-off. The branch's source CI runs once per PR update rather than duplicating push and PR jobs to conserve compute.
