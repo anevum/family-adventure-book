@@ -15,7 +15,7 @@ if(!chrome)throw Error('Chrome/Chromium is needed for interactive browser accept
 
 const html=(await readFile(join(root,'index.html'),'utf8'))
  .replace(/<link rel="stylesheet" href="https:\/\/unpkg\.com\/maplibre-gl[^"]+">/,'')
- .replace('</body>','<script type="module" src="/__fold_smoke.mjs"></script></body>');
+ .replace('</body>','<style id="fold-qa-static">*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}</style><script type="module" src="/__fold_smoke.mjs"></script></body>');
 const browserTest=fileURLToPath(new URL('./fold-smoke-client.mjs',import.meta.url));
 const types={html:'text/html; charset=utf-8',mjs:'text/javascript; charset=utf-8',js:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8',svg:'image/svg+xml'};
 const server=createServer(async(req,res)=>{
