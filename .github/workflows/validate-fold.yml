@@ -1,0 +1,39 @@
+name: The Fold playable review
+on:
+  pull_request:
+    paths:
+      - 'public/fold/**'
+      - 'tests/fold-*.mjs'
+      - '.github/workflows/validate-fold.yml'
+jobs:
+  playable-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check game source
+        run: |
+          node --check public/fold/fold.js
+          node --check public/fold/core.mjs
+          node --check public/fold/atlas.mjs
+          node --check tests/fold-browser-smoke.mjs
+          node --check tests/fold-smoke-client.mjs
+          node --test tests/fold-core.test.mjs
+      - name: Browser acceptance, 15 mobile and desktop states
+        run: node tests/fold-browser-smoke.mjs
+      - name: Upload visual acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-fold-responsive-captures
+          path: test-artifacts/fold-*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload playable static review
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-fold-local-playtest
+          path: public/fold/
+          retention-days: 14
