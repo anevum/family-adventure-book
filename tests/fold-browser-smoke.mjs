@@ -17,7 +17,7 @@ const html=(await readFile(join(root,'index.html'),'utf8'))
  .replace(/<link rel="stylesheet" href="https:\/\/unpkg\.com\/maplibre-gl[^"]+">/,'')
  .replace('</body>','<script type="module" src="/__fold_smoke.mjs"></script></body>');
 const browserTest=fileURLToPath(new URL('./fold-smoke-client.mjs',import.meta.url));
-const types={html:'text/html; charset=utf-8',mjs:'text/javascript; charset=utf-8',js:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8'};
+const types={html:'text/html; charset=utf-8',mjs:'text/javascript; charset=utf-8',js:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8',svg:'image/svg+xml'};
 const server=createServer(async(req,res)=>{
  const pathname=new URL(req.url,'http://127.0.0.1').pathname;
  if(pathname==='/'){res.writeHead(200,{'Content-Type':types.html}).end(html);return;}
@@ -29,15 +29,15 @@ const server=createServer(async(req,res)=>{
 await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
 await mkdir(artifacts,{recursive:true});
 
-async function runSize(width,height,screenshot){
+async function runSize(width,height,scenario,screenshot){
  const profile=await mkdtemp(join(tmpdir(),'the-fold-smoke-'));
  try{
-  const url='http://127.0.0.1:'+server.address().port+'/';
+  const url='http://127.0.0.1:'+server.address().port+'/?scenario='+encodeURIComponent(scenario);
   const args=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
    '--disable-background-networking','--no-first-run','--no-default-browser-check',
    '--force-device-scale-factor=1','--user-data-dir='+profile,
    '--window-size='+width+','+height,'--virtual-time-budget=6000','--dump-dom'];
-  if(screenshot)args.push('--screenshot='+join(artifacts,'fold-'+width+'x'+height+'.png'));
+  if(screenshot)args.push('--screenshot='+join(artifacts,'fold-'+scenario+'-'+width+'x'+height+'.png'));
   args.push(url);
   const child=spawn(chrome,args,{stdio:['ignore','pipe','pipe']});
   let output='',errors='';
@@ -47,17 +47,26 @@ async function runSize(width,height,screenshot){
   assert.equal(code,0,'Chrome exit '+code+': '+errors.slice(-1200));
   if(!output.includes('data-fold-smoke="pass"')){
    const match=output.match(/data-fold-smoke-error="([^"]+)"/);
-   throw Error(width+'x'+height+' browser flow failed: '+(match?.[1]||'no pass marker')+'; '+errors.slice(-500));
+   throw Error(scenario+' '+width+'x'+height+' browser flow failed: +(match?.[1]||'no pass marker')+'; '+errors.slice(-500));
   }
-  console.log('PASS '+width+'x'+height+' level-zero, two quest steps, saved chapter, Level 1, page bounds');
+  console.log('PASS '+scenario+' '+width+'x'+height+' SVG glyphs, viewport, gameplay checkpoint');
  }finally{await rm(profile,{recursive:true,force:true,maxRetries:3});}
 }
 
 try{
- for(const [width,height,screenshot] of [[320,700,false],[390,844,true],[844,390,false],[1024,768,false],[1440,900,true]]){
-  await runSize(width,height,screenshot);
- }
- console.log('The Fold browser smoke passed at all five responsive viewports');
+ const scenarios=[
+  [320,700,'world',false],
+  [390,844,'world',true],
+  [844,390,'world',false],
+  [1024,768,'world',false],
+  [1440,900,'world',true],
+  [390,844,'quests',true],
+  [1440,900,'quests',true],
+  [390,844,'book',true],
+  [1440,900,'book',true],
+ ];
+ for(const [width,height,scenario,screenshot] of scenarios)await runSize(width,height,scenario,screenshot);
+ console.log('The Fold: 9 browser review states passed at mobile, landscape and desktop');
 }finally{
  await new Promise(resolve=>server.close(resolve));
 }
