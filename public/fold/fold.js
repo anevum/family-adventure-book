@@ -112,20 +112,58 @@ function openQuest(id){
  const extra=done?'<div class="privacy-notice">This quest is complete and its XP cannot be earned again. '+(currentNote?'You saved a private note.':'You chose not to save a note.')+'</div>':'<label class="form-label" for="questNote">A little memory (optional)</label><textarea id="questNote" maxlength="300" placeholder="A moment you want to remember..."></textarea>';
  openPanel('<div class="quest-hero"><span class="quest-crest">'+glyph(id)+'</span><span class="quest-meta">YOUR ADVENTURE <b>·</b> +'+q.xp+' XP</span></div>'+title(escapeHtml(q.kind).toUpperCase()+' · +'+q.xp+' XP',q.title,q.description)+'<div class="tags"><span class="tag">NO GPS REQUIRED</span><span class="tag">SOLO OR TOGETHER</span></div><p class="small">'+escapeHtml(q.suggestion)+'</p>'+checks+extra+'<div class="actions">'+actions+'</div>','quest:'+id);
 }
-function openBook(selectedId){
- const entries=save.done.slice().reverse();
- if(selectedId){
-  const entry=save.done.find(x=>x.id===selectedId),q=QUEST_MAP[selectedId];
-  if(!entry||!q){openBook();return;}
-  const text=entry.note?escapeHtml(entry.note):'A quiet adventure became another page in your story.';
-  openPanel(title('THE ADVENTURE BOOK · '+escapeHtml(entry.when||'SAVED CHAPTER'),q.title)+'<div class="book-stamp">'+glyph('book')+'<span>CHAPTER SAVED <b>·</b> '+q.xp+' EXPERIENCE POINTS</span></div><p class="book-memory">'+text+'</p><div class="tags"><span class="tag">+'+q.xp+' XP EARNED</span><span class="tag">PRIVATE TO THIS DEVICE</span></div><div class="actions">'+uiButton('Edit your note','edit-note','data-id="'+selectedId+'"')+uiButton('All chapters','book','','secondary')+'</div><p class="small">Changing or clearing a memory does not change earned XP. No photographs or coordinates were collected.</p>','book:'+selectedId);return;
+function resolveChapter(ref){
+ if(typeof ref!=='string')return null;
+ const daily=/^daily:(\\d{4}-\\d{2}-\\d{2}):(spark|connection|curiosity)$/.exec(ref);
+ if(daily){
+  const entry=save.runs.find(x=>x.day===daily[1]&&x.id===daily[2]);
+  const q=DAILY_QUEST_MAP[daily[2]];
+  return entry&&q?{entry,q,day:entry.day,ref,daily:true}:null;
  }
- const cards=entries.length?entries.map(x=>'<button type="button" class="book-entry" data-book-id="'+x.id+'"><span class="symbol">'+glyph('book')+'</span><span><strong>'+escapeHtml(QUEST_MAP[x.id].title)+'</strong><small>'+escapeHtml(x.when)+' · '+(x.note?'Memory saved':'Completed chapter')+'</small></span></button>').join(''):'<div class="empty"><strong>Your book is waiting.</strong>Finish a quest and your first chapter will appear here.</div>';
- openPanel(title('YOUR STORY, PAGE BY PAGE','The Adventure Book','A private collection of adventures you have chosen to remember.')+'<div class="stack">'+cards+'</div><div class="actions">'+uiButton('Explore quests','all-quests')+uiButton('Export your save','export','','secondary')+'</div><p class="small">Browser-only prototype. Clearing your browsing data can erase these chapters; export a copy if you want to keep them.</p>','book');
+ const q=QUEST_MAP[ref],entry=q?save.done.find(x=>x.id===ref):null;
+ return entry&&q?{entry,q,day:entry.when,ref,daily:false}:null;
+}
+function openBook(selectedId=''){
+ if(selectedId){
+  const chapter=resolveChapter(selectedId);
+  if(!chapter){openBook();return;}
+  const {entry,q,day,daily}=chapter;
+  const memory=entry.note?escapeHtml(entry.note):'A quiet adventure became another page in your story.';
+  openPanel(title('THE ADVENTURE BOOK · '+escapeHtml(day),q.title)+
+   '<div class="book-stamp">'+glyph('book')+'<span>'+(daily?'DAILY EXPEDITION':'FIRST CHAPTER')+' <b>·</b> '+q.xp+' EXPERIENCE POINTS</span></div>'+
+   '<p class="book-memory">'+memory+'</p><div class="tags"><span class="tag">+'+q.xp+' XP EARNED</span><span class="tag">PRIVATE TO THIS DEVICE</span></div>'+
+   '<div class="actions">'+uiButton('Edit your note','edit-note','data-id="'+selectedId+'"')+uiButton('All chapters','book','','secondary')+'</div>'+
+   '<p class="small">Editing a memory never changes XP. No location coordinates or photographs were collected.</p>','book:'+selectedId);
+  return;
+ }
+ const entries=[
+  ...save.done.map(x=>({ref:x.id,day:x.when,title:QUEST_MAP[x.id].title,note:x.note,daily:false})),
+  ...save.runs.map(x=>({ref:'daily:'+x.day+':'+x.id,day:x.day,title:DAILY_QUEST_MAP[x.id].title,note:x.note,daily:true}))
+ ].sort((a,b)=>b.day.localeCompare(a.day));
+ const pageSize=12;
+ const totalPages=Math.max(1,Math.ceil(entries.length/pageSize));
+ bookPage=Math.min(Math.max(bookPage,0),totalPages-1);
+ const display=entries.slice(bookPage*pageSize,(bookPage+1)*pageSize);
+ const cards=display.length?display.map(x=>
+  '<button type="button" class="book-entry" data-book-id="'+x.ref+'"><span class="symbol">'+glyph(x.daily?'compass':'book')+
+  '</span><span><strong>'+escapeHtml(x.title)+'</strong><small>'+escapeHtml(x.day)+' · '+(x.daily?'Daily expedition':'First chapter')+' · '+(x.note?'Memory saved':'No note')+
+  '</small></span></button>').join(''):
+  '<div class="empty"><strong>Your Book is waiting.</strong>Complete a real adventure to create your first chapter.</div>';
+ const pager='<div class="book-pager"><span>PAGE '+(bookPage+1)+' / '+totalPages+' · '+entries.length+' CHAPTER'+(entries.length===1?'':'S')+'</span>'+
+  (bookPage>0?uiButton('Newer','book-newer','','secondary'):'')+
+  (bookPage+1<totalPages?uiButton('Older','book-older','','secondary'):'')+'</div>';
+ openPanel(title('YOUR STORY, PAGE BY PAGE','The Adventure Book','Every completed expedition becomes a chapter on this device. Memories are optional and editable.')+
+  '<div class="stack book-list">'+cards+'</div>'+pager+
+  '<div class="actions">'+uiButton('Explore quests','all-quests')+uiButton('Export all chapters','export','','secondary')+'</div>'+
+  '<p class="small">Local prototype only. Clearing browser storage can erase this Book; export a copy to keep it. No cloud backup is available.</p>','book');
 }
 function editNote(id){
- const entry=save.done.find(x=>x.id===id);if(!entry)return openBook();
- openPanel(title('A PAGE OF YOUR BOOK','Keep this memory','The details are yours. You can change or clear this note anytime.')+'<label class="form-label" for="editNote">Private memory</label><textarea id="editNote" maxlength="300">'+escapeHtml(entry.note)+'</textarea><div class="actions">'+uiButton('Save this page','save-note','data-id="'+id+'"')+uiButton('Clear note','clear-note','data-id="'+id+'"','secondary')+'</div><p class="small">Deleting this note keeps your completed quest and earned XP intact.</p>','edit:'+id);
+ const chapter=resolveChapter(id);
+ if(!chapter)return openBook();
+ openPanel(title('A PAGE OF YOUR BOOK','Keep this memory','The details are yours. You can change or clear this note anytime.')+
+  '<label class="form-label" for="editNote">Private memory</label><textarea id="editNote" maxlength="300">'+escapeHtml(chapter.entry.note)+'</textarea>'+
+  '<div class="actions">'+uiButton('Save this page','save-note','data-id="'+id+'"')+uiButton('Clear note','clear-note','data-id="'+id+'"','secondary')+'</div>'+
+  '<p class="small">Deleting a note does not erase the chapter or change earned XP.</p>','edit:'+id);
 }
 function openFold(){
  openPanel(title('YOUR PEOPLE · YOUR STORY','My Fold','Your Fold starts with you. Couples can eventually invite their partner, and adults can build private family groups when real account and privacy systems are ready.')+'<div class="party-slot"><span class="symbol">'+glyph('party')+'</span><div><strong>'+escapeHtml(save.name)+'</strong><p class="small" style="margin:2px 0">Solo explorer · Level '+point(earnedXP(save)).level+'</p></div></div><div class="privacy-notice"><strong>Real multiplayer is not active in this prototype.</strong><br>Invitations, other members, cloud saves and location sharing require authenticated accounts and individual consent. No imaginary members are displayed as real.</div><div class="actions">'+uiButton('Start an adventure','all-quests')+uiButton('Your privacy','privacy','','secondary')+'</div>','fold');
