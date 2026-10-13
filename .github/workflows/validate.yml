@@ -12,3 +12,9 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/check-release.mjs
+      - name: Package Evergrove fullscreen game
+        uses: actions/upload-artifact@v4
+        with:
+          name: evergrove-fullscreen-playable
+          path: public/
+          retention-days: 14
