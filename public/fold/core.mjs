@@ -19,7 +19,7 @@ export function progression(total){
 }
 export function newSave(){return {version:1,seenIntro:false,name:'Explorer',done:[],steps:{},createdAt:new Date().toISOString()};}
 export function cleanText(value,max=300){return typeof value==='string'?value.trim().slice(0,max):'';}
-export function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;':'&quot;',"'":'&#39;'}[c]));}
+export function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 export function normalizeSave(input){
  const fallback=newSave();
  if(!input||typeof input!=='object'||Array.isArray(input)||input.version!==1)return fallback;
