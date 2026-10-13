@@ -26,6 +26,15 @@ Publishing `main` after Git integration is configured can deploy automatically; 
 
 The prototype is **not a private family portal**. `robots.txt` and `noindex` discourage search engines; they are NOT authentication. Do not upload actual family memories until server-side authentication, per-family data isolation, protected media storage and backups are implemented. See `docs/SECURITY.md`.
 
+## First real-life adventure (development PR only)
+
+The first guided activity loop adds an editable **Cozy Evening** template, optional checkpoints, scheduled quest times, a Chronicle completion reward, and local-only JSON imports for private personal adventures.
+
+- Personal quest files **must not be committed** to this public repository.
+- Source details and test checklist: [First Real Adventure](docs/FIRST_REAL_ADVENTURE.md).
+- CI uploads an `evergrove-local-playtest` static-site artifact with the existing animated world. You can serve its extracted folder locally using `python -m http.server 8000` on a computer, then open `http://localhost:8000`; this does not require deployment.
+- The branch is **not merged or deployed**. The public-safe Creator V1 showcase stays separately reviewed and continues to exclude personal input.
+
 ## Continuing development
 
 - `public/index.html`: markup, world SVG
