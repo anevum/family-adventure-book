@@ -7,6 +7,7 @@ async function waitFor(check,message){
  throw Error('Timed out: '+message);
 }
 async function run(){
+ try{
  await waitFor(()=>$('#intro')?.hidden===false,'first-run entry');
  assert($('#levelNumber')?.textContent==='0','new player must start at Level 0');
  assert($('#xpText')?.textContent==='0 / 80 XP','first level XP must be zero');
