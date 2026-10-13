@@ -55,6 +55,8 @@ async function runSize(width,height,scenario,screenshot){
 
 try{
  const scenarios=[
+  [390,844,'intro',true],
+  [1440,900,'intro',true],
   [320,700,'world',false],
   [390,844,'world',true],
   [844,390,'world',false],
@@ -62,11 +64,15 @@ try{
   [1440,900,'world',true],
   [390,844,'quests',true],
   [1440,900,'quests',true],
+  [390,844,'starter',true],
+  [1440,900,'starter',false],
+  [390,844,'daily',true],
+  [1440,900,'daily',true],
   [390,844,'book',true],
   [1440,900,'book',true],
  ];
  for(const [width,height,scenario,screenshot] of scenarios)await runSize(width,height,scenario,screenshot);
- console.log('The Fold: 9 browser review states passed at mobile, landscape and desktop');
+ console.log('The Fold: 15 browser review states passed at mobile, landscape and desktop');
 }finally{
  await new Promise(resolve=>server.close(resolve));
 }
