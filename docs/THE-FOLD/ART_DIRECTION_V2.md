@@ -1,6 +1,6 @@
 # THE FOLD — Premium Visual Art Direction v2
 **Session:** ANEVUM.WEB.DESIGN.2026-10-13.001.THE-FOLD-PREMIUM-VISUAL-DIRECTION  
-**Status:** Proposed art-direction contract for owner review; not an accepted visual lock, trademark clearance, or deployment authorization.  
+**Status:** Owner accepted V2 as the **working visual baseline to build from** on October 13, 2026. This is not final aesthetic approval, trademark clearance, or deployment/publication authorization.  
 **Applies to:** The existing full-viewport game in `public/fold/`, draft PR #7.  
 **Does not change:** Level 0 progression, seven starter quests, the Adventure Book ledger, local-save behavior, optional GPS, or deployment/consent gates.
 
