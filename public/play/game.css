@@ -136,3 +136,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
+
+.game-shell.garden-unlocked .unlock-garden{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.game-shell:not(.garden-unlocked) .unlock-garden{opacity:0;pointer-events:none}
