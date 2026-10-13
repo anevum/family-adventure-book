@@ -3,6 +3,26 @@ import {SAMPLE_CENTER,BASE_STYLE,validMapPoint,applyFoldAtlas} from './atlas.mjs
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let save=readLocal(),openView='',returnFocus=null,toastTimer=0,rewardTimer=0,mapInstance=null,maplibre=null,liveReady=false,attemptingMap=false,userMarker=null,mapBookmark=null,lastPosition=null,mapIntent=false,mapRegion='sample',locationToken=0;
 const PLACE=SAMPLE_CENTER,MAP_STYLE=BASE_STYLE;
+const MAP_CSS='https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css';
+let mapCssPromise=null;
+function loadMapCss(){
+ if(mapCssPromise)return mapCssPromise;
+ mapCssPromise=new Promise((resolve,reject)=>{
+  const link=document.createElement('link');link.rel='stylesheet';link.href=MAP_CSS;link.dataset.foldMapCss='true';
+  const timer=setTimeout(()=>{link.remove();reject(new Error('Map stylesheet timed out'));},12000);
+  link.addEventListener('load',()=>{clearTimeout(timer);resolve();},{once:true});
+  link.addEventListener('error',()=>{clearTimeout(timer);link.remove();reject(new Error('Map stylesheet unavailable'));},{once:true});
+  document.head.appendChild(link);
+ }).catch(error=>{mapCssPromise=null;throw error;});
+ return mapCssPromise;
+}
+async function withMapTimeout(work,ms=14000){
+ let timer;
+ try{
+  return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Map resources timed out')),ms);})]);
+ }finally{clearTimeout(timer);}
+}
+
 function readLocal(){try{return loadSave(localStorage.getItem(SAVE_KEY));}catch{return newSave();}}
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));return true;}catch{toast('Device saving is unavailable. Your progress may disappear.');return false;}}
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),3600);}
@@ -105,7 +125,7 @@ async function enableLive(){
  }
  attemptingMap=true;toast('Loading real-world map…');
  try{
-  const module=await import('https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs');
+  const [module]=await withMapTimeout(Promise.all([import('https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs'),loadMapCss()]));
   maplibre=module;
   mapInstance=new module.Map({container:'liveMap',style:MAP_STYLE,center:PLACE,zoom:13,attributionControl:true,interactive:true});
   await new Promise((resolve,reject)=>{
