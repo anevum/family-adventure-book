@@ -61,12 +61,47 @@ function closePanel(){
  if(returnFocus?.isConnected)returnFocus.focus();returnFocus=null;
 }
 function title(kicker,title,text=''){return '<span class="eyebrow">'+escapeHtml(kicker)+'</span><h2 id="panelTitle">'+escapeHtml(title)+'</h2>'+(text?'<p>'+escapeHtml(text)+'</p>':'');}
-function openQuests(){
- const choices=QUESTS.map(q=>{
-  const done=isDone(save,q.id),progress=stepProgress(save,q.id).filter(Boolean).length;
-  return '<button type="button" class="quest-choice'+(done?' done':'')+'" data-quest="'+q.id+'"><span class="symbol">'+glyph(done?'check':q.id)+'</span><span><strong>'+escapeHtml(q.title)+'</strong><small>'+(done?'Chapter saved':escapeHtml(q.kind)+' · '+progress+'/'+q.steps.length+' steps · +'+q.xp+' XP')+'</small></span><span class="go-right">›</span></button>';
+function openQuests(tab=questTab){
+ questTab=tab==='starter'?'starter':'today';
+ const doneToday=DAILY_QUESTS.filter(q=>dailyDone(save,q.id)).length;
+ const doneStarter=QUESTS.filter(q=>isDone(save,q.id)).length;
+ const tabs='<div class="quest-tabs" role="group" aria-label="Adventure board sections">'+
+  '<button type="button" data-action="quest-tab" data-tab="today" aria-pressed="'+(questTab==='today')+'" class="'+(questTab==='today'?'selected':'')+'">'+glyph('compass')+'<span>TODAY</span><small>'+doneToday+'/'+DAILY_QUESTS.length+'</small></button>'+
+  '<button type="button" data-action="quest-tab" data-tab="starter" aria-pressed="'+(questTab==='starter')+'" class="'+(questTab==='starter'?'selected':'')+'">'+glyph('quests')+'<span>STARTER</span><small>'+doneStarter+'/'+QUESTS.length+'</small></button></div>';
+ const today=questTab==='today';
+ const activities=today?DAILY_QUESTS:QUESTS;
+ const choices=activities.map(q=>{
+  const done=today?dailyDone(save,q.id):isDone(save,q.id);
+  const progress=today?dailyStepProgress(save,q.id).filter(Boolean).length:stepProgress(save,q.id).filter(Boolean).length;
+  const attribute=today?'data-daily-quest="'+q.id+'"':'data-quest="'+q.id+'"';
+  const icon=today?dailyGlyph(q.id):q.id;
+  const detail=done?(today?'Recorded today · returns tomorrow':'Chapter recorded'):
+   escapeHtml(q.kind)+' · '+progress+'/'+q.steps.length+' steps · +'+q.xp+' XP';
+  return '<button type="button" class="quest-choice'+(done?' done':'')+'" '+attribute+'><span class="symbol">'+glyph(done?'check':icon)+'</span><span><strong>'+escapeHtml(q.title)+'</strong><small>'+detail+'</small></span><span class="go-right">›</span></button>';
  }).join('');
- openPanel(title('YOUR WORLD IS YOUR GAME','Choose an adventure','Play at home, outside, alone or with someone you care about. No GPS, money or photos required.')+'<div class="stack">'+choices+'</div><p class="small">Each starter quest awards XP once. This is an offline device prototype, not shared family progress.</p>','quests');
+ const heading=today?'Today\'s Expeditions':'The First Chapters';
+ const explainer=today?'Three real-life prompts that refresh on your device\'s local calendar day. Finish the two checkpoints before claiming a reward.':
+  'Seven foundational adventures introduce the world. Each starter chapter can be completed and rewarded once.';
+ const count=today?doneToday+'/'+DAILY_QUESTS.length+' TODAY':doneStarter+'/'+QUESTS.length+' CHAPTERS';
+ openPanel(title('ADVENTURE BOARD · '+count,heading,explainer)+tabs+'<div class="stack quest-list">'+choices+'</div>'+
+  '<p class="small">'+(today?'Self-reported activities · up to 70 local XP per calendar day. Changing the device clock or save file can alter progress.':
+  'No GPS, photographs or other person\'s account are needed. Starter progress remains saved on this device.')+'</p>','quests');
+}
+function openDailyQuest(id){
+ const q=DAILY_QUEST_MAP[id];if(!q){openQuests('today');return;}
+ const day=localDay(),done=dailyDone(save,id,day),flags=dailyStepProgress(save,id,day);
+ const checks=q.steps.map((step,i)=>'<label class="step"><input type="checkbox" data-daily-step-id="'+id+'" data-step-num="'+i+'" '+(flags[i]?'checked':'')+' '+(done?'disabled':'')+'><span>'+escapeHtml(step)+'</span></label>').join('');
+ const ref='daily:'+day+':'+id;
+ const note=save.runs.find(x=>x.id===id&&x.day===day)?.note||'';
+ const buttons=done?uiButton('READ TODAY\'S CHAPTER','open-book','data-id="'+ref+'"')+uiButton('Back to board','all-quests','','secondary'):
+  uiButton('COMPLETE EXPEDITION · +'+q.xp+' XP','finish-daily','data-id="'+id+'" '+(!flags.every(Boolean)?'disabled':''))+
+  uiButton('Back to board','all-quests','','secondary');
+ const memory=done?'<div class="privacy-notice">Today\'s reward has already been earned. '+(note?'Your memory is saved.':'No memory note was added.')+' Return another day for a new attempt.</div>':
+  '<label class="form-label" for="questNote">One thing worth remembering (optional)</label><textarea id="questNote" maxlength="300" placeholder="Keep a small moment from this expedition..."></textarea>';
+ openPanel('<div class="quest-hero"><span class="quest-crest">'+glyph(dailyGlyph(id))+'</span><span class="quest-meta">DAILY EXPEDITION <b>·</b> +'+q.xp+' XP</span></div>'+
+  title(escapeHtml(q.kind).toUpperCase()+' · '+day,q.title,q.description)+
+  '<div class="tags"><span class="tag">NO GPS REQUIRED</span><span class="tag">RETURNS TOMORROW</span></div>'+
+  '<p class="small">'+escapeHtml(q.suggestion)+'</p>'+checks+memory+'<div class="actions">'+buttons+'</div>','daily:'+id);
 }
 function openQuest(id){
  const q=QUEST_MAP[id];if(!q){openQuests();return;}
