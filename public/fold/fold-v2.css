@@ -261,3 +261,34 @@ button:focus-visible,[role=dialog] :focus-visible{outline:3px solid var(--aurora
 #panel[data-view^="quest:"] h2{font-size:clamp(29px,3.6vw,39px)}
 #panel[data-view^="book"] .book-stamp b{color:#c39356;padding:0 5px}
 @media(max-width:900px){.quest-hero{margin:0 35px 14px 0;min-height:70px;padding:9px 11px}.quest-crest{width:52px;height:53px}.quest-crest .glyph{width:31px;height:31px}.quest-meta{font-size:9px;letter-spacing:.1em}}
+
+/* ADVENTURE BOARD V2.1 — the daily/starter switch belongs to the same machined interface. */
+.quest-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:6px;margin:18px 0 18px;border:1px solid #8d7058;border-radius:13px 4px 13px 4px;background:linear-gradient(160deg,#142b35,#0a1e2a);box-shadow:inset 0 3px 5px #06141c,0 3px 0 #101d27}
+.quest-tabs button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:7px 9px;background:linear-gradient(150deg,#2e434a,#162b37);border:1px solid #50666b;border-radius:10px 3px 10px 3px;box-shadow:inset 0 1px #d4ddd526;color:#bfd0ce;font-size:11px;font-weight:950;letter-spacing:.075em}
+.quest-tabs button.selected{color:#ffe4b5;border-color:#d5a36d;background:linear-gradient(145deg,#726951,#305359 46%,#18313c);box-shadow:inset 0 2px #ffe8b36a,inset 0 -3px #142530,0 3px 0 #2e2926,0 0 19px #58ccb231}
+.quest-tabs button .glyph{width:24px;height:24px;color:#9fbcbc}
+.quest-tabs button.selected .glyph{color:#f3d093;filter:drop-shadow(0 1px 4px #efcf818a)}
+.quest-tabs button small{display:grid;place-items:center;min-width:33px;min-height:22px;padding:2px 6px;border-radius:4px;background:#0d2029;color:#d5ccc0;font-size:10px;letter-spacing:0;font-variant-numeric:tabular-nums}
+.quest-tabs button.selected small{border:1px solid #9b784a;color:#f4cb89;background:#24333a}
+.panel .quest-list{gap:11px;margin-top:12px}
+.panel .quest-list .quest-choice{transition:filter .15s,transform .15s}
+.panel .quest-list .quest-choice:hover{transform:translateY(-2px)}
+.panel .quest-list .quest-choice:active{transform:translateY(2px)}
+.panel .quest-list .quest-choice.done{border-color:#659285}
+.panel .quest-list .quest-choice.done .symbol{border-color:#87c8af;background:linear-gradient(160deg,#517971,#1c4446);color:#b7ffe2}
+.panel .quest-list .quest-choice.done .go-right{color:#84c1af}
+#panel[data-view^="daily:"] .quest-hero{border-color:#83b8a5;background:linear-gradient(114deg,#3a716b,#1d484b 53%,#122d3a)}
+#panel[data-view^="daily:"] .quest-crest{border-color:#91d0af;border-bottom-color:#4c766b;background:radial-gradient(circle at 25% 20%,#91b69a,#33655f 63%,#122e3a)}
+#panel[data-view^="daily:"] .eyebrow{font-size:9px;color:#a8d7cf;margin-bottom:6px}
+#panel[data-view^="daily:"] h2{font-size:clamp(29px,3.6vw,39px)}
+.book-pager{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px;padding:13px 0 4px;margin-top:10px;border-top:1px solid #af916b}
+.book-pager>span{margin-right:auto;color:#835d38;font-size:10px;font-weight:900;letter-spacing:.08em}
+.panel .book-pager button{font-size:11px;min-height:41px;padding:8px 12px;border-radius:8px 3px 8px 3px}
+@media(max-width:900px){
+ .quest-tabs{margin:13px 0 14px;gap:5px;padding:4px}
+ .quest-tabs button{min-height:46px;gap:5px;padding:6px;font-size:10px}
+ .quest-tabs button .glyph{width:21px;height:21px}
+ .quest-tabs button small{min-width:29px;min-height:20px;font-size:9px}
+ #panel[data-view^="daily:"] .quest-hero{min-height:65px}
+ .book-pager>span{flex:1 0 100%}
+}
