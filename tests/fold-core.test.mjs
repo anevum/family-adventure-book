@@ -5,7 +5,7 @@ import {SAVE_KEY,QUESTS,newSave,normalizeSave,loadSave,progression,xpToNext,xpFo
 test('all first-time players start Level 0, zero XP and no chapters',()=>{
  const s=newSave();assert.equal(s.done.length,0);assert.equal(earnedXP(s),0);assert.equal(progression(0).level,0);
  assert.equal(progression(79).level,0);assert.equal(progression(80).level,1);assert.equal(progression(179).level,1);assert.equal(progression(180).level,2);
- assert.equal(xpToNext(0),80);assert.equal(xpForLevel(10),1700);
+ assert.equal(xpToNext(0),80);assert.equal(xpForLevel(10),1700);assert.equal(progression(xpForLevel(1000)).level,1000);
  assert.equal(SAVE_KEY,'the-fold-local-playtest-v1');
 });
 test('chapter cannot earn XP until each explicit step is completed',()=>{
