@@ -47,7 +47,7 @@ async function runSize(width,height,scenario,screenshot){
   assert.equal(code,0,'Chrome exit '+code+': '+errors.slice(-1200));
   if(!output.includes('data-fold-smoke="pass"')){
    const match=output.match(/data-fold-smoke-error="([^"]+)"/);
-   throw Error(scenario+' '+width+'x'+height+' browser flow failed: +(match?.[1]||'no pass marker')+'; '+errors.slice(-500));
+   throw Error(scenario+' '+width+'x'+height+' browser flow failed: '+(match?.[1]||'no pass marker')+'; '+errors.slice(-500));
   }
   console.log('PASS '+scenario+' '+width+'x'+height+' SVG glyphs, viewport, gameplay checkpoint');
  }finally{await rm(profile,{recursive:true,force:true,maxRetries:3});}
