@@ -38,6 +38,7 @@ async function run(){
   assert($('#game')?.dataset.map==='demo','Illustrated map must be default without GPS');
   assert($('#mapModeText')?.textContent.includes('NO GPS'),'Demo GPS disclosure missing');
   assert($('#demoPins')?.querySelectorAll('[data-quest]').length===3,'Demo quest pins missing');
+  if(scenario==='intro'){document.documentElement.dataset.foldSmoke='pass';return;}
   $('#introPlay').click();
   await waitFor(()=>$('#intro')?.hidden===true,'enter game');
   assertNoOverflow();
@@ -51,11 +52,45 @@ async function run(){
    document.documentElement.dataset.foldSmoke='pass';
    return;
   }
-  if(scenario==='quests'){
+  if(scenario==='quests'||scenario==='starter'){
    $('[data-panel="quests"]').click();
    await waitFor(()=>!$('#panel').hidden&&Boolean($('.quest-choice')),'Quest board open');
    assert($('#panel').dataset.view==='quests','Quest board not correctly labeled');
+   if(scenario==='starter'){
+    $('[data-action="quest-tab"][data-tab="starter"]').click();
+    await waitFor(()=>Boolean($('[data-quest="first"]')),'Starter board');
+    assert($('[data-action="quest-tab"][data-tab="starter"]')?.getAttribute('aria-pressed')==='true','Starter tab not active');
+   }else{
+    assert(Boolean($('[data-daily-quest="spark"]')),'Daily board missing');
+    assert($('.quest-tabs button[aria-pressed="true"]')?.dataset.tab==='today','Today tab not active');
+   }
    assert($('.quest-choice .glyph use')?.getAttribute('href')?.includes('ic-'),'Quest emblems are not SVG');
+   assertNoOverflow();
+   document.documentElement.dataset.foldSmoke='pass';
+   return;
+  }
+  if(scenario==='daily'){
+   $('[data-panel="quests"]').click();
+   await waitFor(()=>Boolean($('[data-daily-quest="spark"]')),'Daily adventure board');
+   $('[data-daily-quest="spark"]').click();
+   await waitFor(()=>Boolean($('input[data-daily-step-id="spark"]')),'Daily detail');
+   assert($('#panel').dataset.view==='daily:spark','Daily panel classification missing');
+   assert($('[data-action="finish-daily"]')?.disabled===true,'Daily reward unlocked too early');
+   $('input[data-daily-step-id="spark"][data-step-num="0"]').click();
+   assert($('[data-action="finish-daily"]')?.disabled===true,'Daily one-step claim');
+   $('input[data-daily-step-id="spark"][data-step-num="1"]').click();
+   assert($('[data-action="finish-daily"]')?.disabled===false,'Daily two-step claim stays disabled');
+   $('#questNote').value='Today I did something meaningful.';
+   $('[data-action="finish-daily"]').click();
+   await waitFor(()=>$('#xpText')?.textContent==='20 / 80 XP','Daily award in HUD');
+   const save=JSON.parse(localStorage.getItem('the-fold-local-playtest-v1'));
+   assert(save.runs?.length===1&&save.runs[0].id==='spark','Daily chapter not saved exactly once');
+   assert(save.runs[0].note==='Today I did something meaningful.','Daily memory not recorded');
+   await waitFor(()=>$('#celebrate')?.hidden===true,'Daily reward dismissal');
+   if($('#panel').hidden)$('[data-panel="book"]').click();
+   await waitFor(()=>!$('#panel').hidden,'Book after daily reward');
+   if(!$('#panel').dataset.view.startsWith('book'))$('[data-panel="book"]').click();
+   assert($('.book-stamp')?.textContent?.includes('DAILY EXPEDITION')||$('.book-entry')?.textContent?.includes('A Small Spark'),'Daily chapter absent from Adventure Book');
    assertNoOverflow();
    document.documentElement.dataset.foldSmoke='pass';
    return;
