@@ -1,7 +1,7 @@
-import {SAVE_KEY,QUESTS,QUEST_MAP,newSave,loadSave,normalizeSave,cleanText,escapeHtml,earnedXP,progression,isDone,stepProgress,setStep,completeQuest} from './core.mjs';
+import {SAVE_KEY,QUESTS,QUEST_MAP,newSave,loadSave,normalizeSave,cleanText,escapeHtml,earnedXP,progression,isDone,stepProgress,setStep,completeQuest,DAILY_QUESTS,DAILY_QUEST_MAP,localDay,dailyDone,dailyStepProgress,setDailyStep,completeDaily} from './core.mjs';
 import {SAMPLE_CENTER,BASE_STYLE,validMapPoint,applyFoldAtlas} from './atlas.mjs';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-let save=readLocal(),openView='',returnFocus=null,toastTimer=0,rewardTimer=0,mapInstance=null,maplibre=null,liveReady=false,attemptingMap=false,userMarker=null,mapBookmark=null,lastPosition=null,mapIntent=false,mapRegion='sample',locationToken=0;
+let save=readLocal(),questTab='today',bookPage=0,openView='',returnFocus=null,toastTimer=0,rewardTimer=0,mapInstance=null,maplibre=null,liveReady=false,attemptingMap=false,userMarker=null,mapBookmark=null,lastPosition=null,mapIntent=false,mapRegion='sample',locationToken=0;
 const PLACE=SAMPLE_CENTER,MAP_STYLE=BASE_STYLE;
 const MAP_CSS='https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css';
 let mapCssPromise=null;
@@ -29,18 +29,22 @@ function toast(message){const el=$('#toast');el.textContent=message;el.classList
 // IDs come from game code, never user-entered text; SVG references cannot escape this sprite.
 const GLYPH_IDS=new Set(['fold','map','quests','party','book','gear','compass','locate','demo','shield','xp','arrow','check','first','us','home','wonder','memory','kind','ritual']);
 function glyph(id){const safe=GLYPH_IDS.has(id)?id:'first';return '<svg class="glyph" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><use href="./icons.svg#ic-'+safe+'"></use></svg>';}
+function dailyGlyph(id){return ({spark:'first',connection:'us',curiosity:'wonder'})[id]||'first';}
 function point(xp){return progression(xp);}
 function updateHUD(){
  const p=point(earnedXP(save));
  $('#levelNumber').textContent=p.level;$('#levelName').textContent='LEVEL '+p.level;
  $('#xpText').textContent=p.inLevel+' / '+p.target+' XP';$('#xpBar').style.width=Math.round(p.fraction*100)+'%';
- const next=QUESTS.find(q=>!isDone(save,q.id));
- $('#nextTitle').textContent=next?.title||'Your Adventure Book';
- $('#nextMeta').textContent=next?'YOUR NEXT ADVENTURE':'ALL STARTER QUESTS FINISHED';
- $('#nextDesc').textContent=next?.description||'Your next chapter is yours to imagine.';
- $('#nextGo').dataset.quest=next?.id||'';
- const nextSymbol=$('.next-icon use');if(nextSymbol)nextSymbol.setAttribute('href','./icons.svg#ic-'+(next?.id||'book'));
- const nextButton=$('#nextGo span');if(nextButton)nextButton.textContent=next?'BEGIN':'READ';
+ const starter=QUESTS.find(q=>!isDone(save,q.id));
+ const daily=DAILY_QUESTS.find(q=>!dailyDone(save,q.id));
+ const next=starter||daily;
+ $('#nextTitle').textContent=next?.title||'The Adventure Book';
+ $('#nextMeta').textContent=starter?'YOUR NEXT CHAPTER':daily?'TODAY\'S EXPEDITION':'ALL TODAY\'S EXPEDITIONS DONE';
+ $('#nextDesc').textContent=next?.description||'Your completed memories are waiting in the Book.';
+ $('#nextGo').dataset.quest=starter?.id||'';
+ $('#nextGo').dataset.daily=starter?'':daily?.id||'';
+ const sym=$('.next-icon use');if(sym)sym.setAttribute('href','./icons.svg#ic-'+(starter?.id||daily&&dailyGlyph(daily.id)||'book'));
+ const caption=$('#nextGo span');if(caption)caption.textContent=next?'BEGIN':'READ';
  $('#privacyStatus').textContent=lastPosition?'USED ONCE · PRIVATE':'LOCATION OFF';
 }
 function uiButton(label,action,extra='',kind='primary'){return '<button type="button" class="'+kind+'" data-action="'+action+'" '+extra+'>'+escapeHtml(label)+'</button>';}
@@ -48,7 +52,7 @@ function openPanel(html,id){
  if($('#panel').hidden)returnFocus=document.activeElement;
  $('#panelBody').innerHTML=html;openView=id;$('#panel').dataset.view=id;$('#game').dataset.view=id;$('#panel').hidden=false;$('#scrim').hidden=false;
  $('#panelClose').focus();
- const selected=id==='quests'||id.startsWith('quest:')?'quests':id==='fold'?'fold':id.startsWith('book')||id.startsWith('edit:')?'book':'';
+ const selected=id==='quests'||id.startsWith('quest:')||id.startsWith('daily:')?'quests':id==='fold'?'fold':id.startsWith('book')||id.startsWith('edit:')?'book':'';
  $$('.dock button').forEach(b=>{if(selected&&b.dataset.panel===selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
 }
 function closePanel(){
