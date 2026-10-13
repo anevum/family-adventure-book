@@ -24,7 +24,7 @@ export function localDay(date=new Date()){
  return String(date.getFullYear()).padStart(4,'0')+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 }
 export function isValidDay(value){
- if(typeof value!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false;
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
  const d=new Date(value+'T12:00:00Z');
  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;
 }
@@ -64,7 +64,7 @@ export function normalizeSave(input){
   // In-progress checkbox data is not a historical record; keep a small bounded working set.
   const keys=Object.keys(input.dailySteps).slice(-90);
   for(const key of keys){
-   const match=/^(\\d{4}-\\d{2}-\\d{2}):(spark|connection|curiosity)$/.exec(key);
+   const match=/^(\d{4}-\d{2}-\d{2}):(spark|connection|curiosity)$/.exec(key);
    if(!match||!dailyKey(match[2],match[1])||!Array.isArray(input.dailySteps[key]))continue;
    const q=DAILY_QUEST_MAP[match[2]];
    dailySteps[key]=q.steps.map((_,idx)=>input.dailySteps[key][idx]===true);
