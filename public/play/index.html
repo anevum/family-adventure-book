@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#071b24">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="description" content="Evergrove, a living storybook adventure. An animated, interactive world that grows as you play.">
+<title>EVERGROVE · An Adventure Begins</title>
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="game.css">
+<script src="game.js" defer></script>
+</head><body>
+<div id="game" class="game-shell">
+  <div class="game-grain" aria-hidden="true"></div>
+  <div id="ambient" class="game-ambient" aria-hidden="true"></div>
+  <header class="game-hud">
+    <div class="hud-brand"><span class="hud-sigil">✧</span><div><strong>EVERGROVE</strong><small>THE ADVENTURE BOOK</small></div></div>
+    <div class="hud-progress" aria-label="Character experience">
+      <span class="level-emblem" id="levelEmblem">0</span>
+      <div class="xp-track"><div class="xp-top"><span>LEVEL <b id="levelLabel">0</b></span><span id="xpLabel">0 / 60 XP</span></div><div class="xp-meter"><i id="xpFill"></i></div></div>
+    </div>
+    <div class="hud-right"><span class="token-pill"><b aria-hidden="true">✦</b><span id="tokens">0</span></span><button class="hud-icon" type="button" id="soundButton" aria-label="Enable sound">♫</button><button class="hud-icon" type="button" id="settingsButton" aria-label="Game settings">⚙</button></div>
+  </header>
+  <main id="worldStage" class="game-world" tabindex="0" aria-label="Evergrove game world. Tap to walk; tap the cottage, pond, fox, garden, or lantern to interact. Arrow keys or WASD also move.">
+    <div class="sky-glow"></div><div class="stars-night"></div><div class="cloud cloud-one"></div><div class="cloud cloud-two"></div>
+    <div class="scene-hills hills-back"></div><div class="scene-hills hills-mid"></div>
+    <div class="game-mountains" aria-hidden="true"></div>
+    <svg id="worldArt" viewBox="0 0 840 630" role="group" aria-labelledby="worldTitle" xmlns="http://www.w3.org/2000/svg">
+              <title id="worldTitle">Animated miniature family world with a cottage, trees, garden, lantern, and adventurer</title>
+              <defs>
+                <linearGradient id="earthSide" x1="0" x2=".8" y1="0" y2="1"><stop stop-color="#436c57"/><stop offset=".54" stop-color="#224f46"/><stop offset="1" stop-color="#122e30"/></linearGradient>
+                <radialGradient id="grassTop" cx=".44" cy=".2" r=".8"><stop stop-color="#a6be75"/><stop offset=".48" stop-color="#699b64"/><stop offset="1" stop-color="#366e5b"/></radialGradient>
+                <radialGradient id="grassGlow"><stop stop-color="#cbd08a" stop-opacity=".6"/><stop offset="1" stop-color="#9abc6a" stop-opacity="0"/></radialGradient>
+                <linearGradient id="wallFront" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e8c991"/><stop offset=".7" stop-color="#b99368"/><stop offset="1" stop-color="#91734f"/></linearGradient>
+                <linearGradient id="wallSide" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b59768"/><stop offset="1" stop-color="#735d4b"/></linearGradient>
+                <linearGradient id="roofFront" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b36b5d"/><stop offset=".5" stop-color="#894f50"/><stop offset="1" stop-color="#623f47"/></linearGradient>
+                <linearGradient id="roofSide" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d08a69"/><stop offset="1" stop-color="#8a4e50"/></linearGradient>
+                <radialGradient id="treeCanopy" cx=".28" cy=".23" r=".92"><stop stop-color="#95ae79"/><stop offset=".56" stop-color="#447f69"/><stop offset="1" stop-color="#225e57"/></radialGradient>
+                <radialGradient id="treeCanopyDark"><stop stop-color="#6a9872"/><stop offset="1" stop-color="#214b48"/></radialGradient>
+                <radialGradient id="pond" cx=".3" cy=".15"><stop stop-color="#b6e4cb"/><stop offset=".55" stop-color="#76bfb2"/><stop offset="1" stop-color="#367c87"/></radialGradient>
+                <radialGradient id="lanternGlow"><stop stop-color="#ffe6a1" stop-opacity=".77"/><stop offset=".45" stop-color="#eab46b" stop-opacity=".21"/><stop offset="1" stop-color="#eab46b" stop-opacity="0"/></radialGradient>
+                <linearGradient id="cape" x1="0" x2="1"><stop stop-color="#c47755"/><stop offset="1" stop-color="#8d4b43"/></linearGradient>
+                <filter id="worldSoftGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="8"/></filter>
+                <filter id="shadowBlur"><feGaussianBlur stdDeviation="10"/></filter>
+              </defs>
+              <g class="scene-floating">
+                <ellipse cx="423" cy="542" rx="258" ry="29" fill="#051c1f" opacity=".38" filter="url(#shadowBlur)"/>
+                <path d="M94 375 C121 285 289 227 419 231 C574 230 716 290 744 376 L727 420 C676 494 546 551 420 551 C294 551 168 496 111 420Z" fill="url(#earthSide)" stroke="#204239" stroke-width="5"/>
+                <path d="M105 408 C173 480 298 514 420 527 C544 513 671 478 734 410" fill="none" stroke="#33574c" stroke-width="9" opacity=".8"/>
+                <path d="M122 431 C238 500 357 519 420 519 C493 519 611 494 724 431" fill="none" stroke="#a4a66f" stroke-width="2" stroke-dasharray="3 17" opacity=".45"/>
+                <ellipse cx="420" cy="367" rx="325" ry="150" fill="url(#grassTop)" stroke="#a1b878" stroke-width="9"/>
+                <ellipse cx="401" cy="342" rx="255" ry="95" fill="url(#grassGlow)"/>
+                <ellipse cx="420" cy="377" rx="312" ry="140" fill="transparent" class="walkable-area scene-clickable" data-spot="trail" tabindex="0" role="button" aria-label="Move adventurer around the island"/>
+                <path d="M440 338 C408 358 400 397 437 421 C463 437 467 462 442 484" fill="none" stroke="#b18e66" stroke-width="48" stroke-linecap="round" opacity=".45"/>
+                <path d="M440 338 C408 358 400 397 437 421 C463 437 467 462 442 484" fill="none" stroke="#efd6a5" stroke-width="32" stroke-linecap="round" opacity=".88"/>
+                <path d="M440 338 C408 358 400 397 437 421 C463 437 467 462 442 484" fill="none" stroke="#c3ab7d" stroke-width="2.5" stroke-dasharray="4 18" stroke-linecap="round" opacity=".8"/>
+                <!-- pond -->
+                <g class="world-pond scene-clickable" data-spot="pond" role="button" tabindex="0" aria-label="Visit the pond">
+                  <ellipse cx="616" cy="391" rx="77" ry="41" fill="#426d5d" opacity=".7"/>
+                  <ellipse cx="614" cy="387" rx="66" ry="31" fill="url(#pond)" stroke="#bad4a2" stroke-width="7"/>
+                  <ellipse cx="600" cy="380" rx="26" ry="9" fill="none" stroke="#dcf4d7" stroke-width="3" opacity=".44" class="pond-ripple"/>
+                  <path d="M631 391q8-11 16 0q-10 5-16 0 M574 382q8-12 15-3q-9 7-15 3" fill="#72935f"/>
+                </g>
+                <!-- back forest -->
+                <g class="trees-back" opacity=".94">
+                  <g transform="translate(211 302) scale(.95)"><path d="M-3 45v-54" stroke="#6b5c4c" stroke-width="16" stroke-linecap="round"/><circle cx="0" cy="-29" r="48" fill="url(#treeCanopyDark)"/><circle cx="-19" cy="-34" r="29" fill="url(#treeCanopy)"/><circle cx="18" cy="-46" r="32" fill="url(#treeCanopy)"/></g>
+                  <g transform="translate(269 276) scale(.73)"><path d="M-3 57v-67" stroke="#765944" stroke-width="16"/><circle cx="0" cy="-38" r="54" fill="url(#treeCanopy)"/><circle cx="-26" cy="-26" r="29" fill="url(#treeCanopyDark)"/></g>
+                  <g transform="translate(588 260) scale(.78)"><path d="M-2 53v-59" stroke="#755b46" stroke-width="17"/><circle cx="0" cy="-34" r="51" fill="url(#treeCanopyDark)"/><circle cx="25" cy="-42" r="30" fill="url(#treeCanopy)"/></g>
+                  <g transform="translate(648 312) scale(1.04)"><path d="M0 51v-60" stroke="#62513f" stroke-width="16"/><circle cx="0" cy="-36" r="46" fill="url(#treeCanopy)"/><circle cx="23" cy="-25" r="30" fill="url(#treeCanopyDark)"/><circle cx="-22" cy="-34" r="30" fill="url(#treeCanopy)"/></g>
+                </g>
+                <!-- wooden dock / garden -->
+                <path d="M245 363 L313 340 L348 359 L279 384Z" fill="#927c58"/><path d="M245 363v9l34 13v-1l69-25v-9l-69 25Z" fill="#664e42"/>
+                <g class="garden">
+                  <path d="M254 387q-12-30 0-46M267 391q4-27 16-41M283 396q2-34 20-49" stroke="#507d48" fill="none" stroke-width="4"/>
+                  <circle cx="253" cy="343" r="8" fill="#f1b5a3"/><circle cx="285" cy="348" r="7" fill="#df9cba"/><circle cx="304" cy="347" r="7" fill="#f8cb84"/>
+                  <circle cx="256" cy="343" r="3" fill="#fff1bf"/><circle cx="285" cy="349" r="3" fill="#fff1bf"/><circle cx="304" cy="348" r="3" fill="#fff1bf"/>
+                </g>
+                <!-- cottage shadow -->
+                <ellipse cx="427" cy="346" rx="123" ry="60" fill="#193d3b" opacity=".37"/>
+                <g class="cottage scene-clickable" data-spot="cottage" tabindex="0" role="button" aria-label="Enter the family cottage">
+                  <path d="M333 258 L424 207 L514 260 L514 354 L424 404 L333 354Z" fill="url(#wallFront)" stroke="#836f53" stroke-width="3"/>
+                  <path d="M424 207 L514 260 L514 354 L424 404Z" fill="url(#wallSide)" opacity=".72"/>
+                  <path d="M333 270L424 222L514 271" fill="none" stroke="#f5dca2" stroke-width="8" opacity=".7"/>
+                  <path d="M329 265L424 206L518 265L510 279L423 230L338 280Z" fill="url(#roofFront)" stroke="#654a47" stroke-width="4"/>
+                  <path d="M424 206L518 265L510 279L423 230Z" fill="url(#roofSide)"/>
+                  <path d="M316 263L419 181L430 183L528 264L514 269L425 209L331 272Z" fill="#7d4d4d" stroke="#613c45" stroke-width="3"/>
+                  <path d="M364 226l5-58 31-15 25 11-5 44" fill="#8f6453" stroke="#624943" stroke-width="4"/>
+                  <path d="M370 179l28-13 20 8" fill="none" stroke="#c99473" stroke-width="5"/>
+                  <path d="M376 183v25" stroke="#d7ac85" stroke-width="3" opacity=".7"/>
+                  <path d="M348 280v67M358 276v77M488 279v69M501 280v68" stroke="#8b7052" stroke-width="2" opacity=".4"/>
+                  <!-- window -->
+                  <path d="M352 297l38-20v47l-38 22Z" fill="#664d44" stroke="#f5deaa" stroke-width="5"/><path d="M358 301l26-13v32l-26 14Z" fill="#ffd795"/><path d="M371 295v32M357 319l27-13" stroke="#8c6143" stroke-width="4"/>
+                  <path d="M463 294l36 19v38l-36-20Z" fill="#6b5246" stroke="#e9c38c" stroke-width="5"/><path d="M470 307l21 12v22l-21-12Z" fill="#ffdc9b"/><path d="M482 315v20" stroke="#8c6143" stroke-width="3"/>
+                  <!-- door -->
+                  <path d="M408 328q0-18 17-20q17 2 17 19v64l-34 19Z" fill="#503f3b" stroke="#e3b77c" stroke-width="5"/>
+                  <path d="M414 331q0-12 11-14q11 2 11 14v57l-22 12Z" fill="#775648"/>
+                  <circle cx="431" cy="358" r="3" fill="#e7c273"/>
+                  <!-- roof shingles -->
+                  <path d="M348 251l81-55M375 260l67-56M402 266l55-52M431 228l69 44" stroke="#e1a27e" stroke-width="2" opacity=".3"/>
+                  <!-- porch greenery -->
+                  <g><circle cx="351" cy="359" r="16" fill="#39715b"/><circle cx="338" cy="369" r="14" fill="#5f8b57"/><circle cx="482" cy="385" r="18" fill="#477555"/><circle cx="499" cy="374" r="13" fill="#70935d"/></g>
+                  <path d="M410 397L435 386L474 410L449 424Z" fill="#d6b38b"/>
+                </g>
+                <!-- front trees -->
+                <g class="tree-sway"><path d="M169 398v-70" stroke="#675443" stroke-width="15" stroke-linecap="round"/><circle cx="170" cy="321" r="43" fill="url(#treeCanopyDark)"/><circle cx="143" cy="329" r="27" fill="url(#treeCanopy)"/><circle cx="187" cy="309" r="36" fill="url(#treeCanopy)"/><circle cx="154" cy="296" r="24" fill="#6d9a6c" opacity=".8"/></g>
+                <g class="tree-sway tree-sway-alt"><path d="M698 403v-79" stroke="#705641" stroke-width="14" stroke-linecap="round"/><circle cx="698" cy="302" r="49" fill="url(#treeCanopyDark)"/><circle cx="675" cy="314" r="32" fill="url(#treeCanopy)"/><circle cx="716" cy="289" r="37" fill="url(#treeCanopy)"/></g>
+                <!-- grasses and flowers -->
+                <g fill="none" stroke="#d3dc92" stroke-width="3" stroke-linecap="round" opacity=".85">
+                  <path d="M181 399l-9-12m9 12l7-14M231 438l-7-12m7 12l11-14M548 462l-8-12m8 12l8-13M671 421l-9-11m9 11l9-11"/>
+                </g>
+                <g class="flower-dance"><circle cx="232" cy="399" r="6" fill="#efc9a4"/><circle cx="225" cy="410" r="4" fill="#f2a6b0"/><circle cx="551" cy="422" r="6" fill="#f6ce86"/><circle cx="568" cy="431" r="5" fill="#e8a6a7"/><circle cx="298" cy="451" r="6" fill="#f0c891"/></g>
+                <!-- lantern post -->
+                <g class="scene-clickable lantern" data-spot="lantern" tabindex="0" role="button" aria-label="Light the lantern">
+                  <ellipse cx="524" cy="349" rx="54" ry="54" fill="url(#lanternGlow)" class="lamp-aura"/>
+                  <path d="M526 385v-71l17-17" stroke="#624f40" stroke-width="8" fill="none" stroke-linecap="round"/>
+                  <path d="M539 294l13-2M543 295v15" stroke="#624f40" stroke-width="4"/>
+                  <path d="M535 310h18l-3 26h-12Z" fill="#e3af61" stroke="#6f5140" stroke-width="3"/>
+                  <path d="M539 314h10l-2 16h-6Z" fill="#ffe8ab" class="lantern-flame"/>
+                </g>
+                <!-- explorer -->
+                <g id="characterMover" class="character-mover">
+                <g class="adventurer scene-clickable" id="worldCharacter" data-spot="character" tabindex="0" role="button" aria-label="Greet your adventurer" transform="translate(462 438)">
+                  <ellipse cx="0" cy="7" rx="32" ry="10" fill="#27473e" opacity=".35"/>
+                  <g class="character-idle">
+                    <path d="M-14-23l-8 27" stroke="#493d3d" stroke-width="9" stroke-linecap="round" class="character-feet left-foot"/><path d="M10-23l11 27" stroke="#493d3d" stroke-width="9" stroke-linecap="round" class="character-feet right-foot"/>
+                    <path d="M-23-65q23-11 44 0l6 45q-26 13-53 0Z" fill="#5b877c" stroke="#315c56" stroke-width="4" class="character-coat"/>
+                    <path d="M-21-56l-12 27M21-56l14 26" stroke="#e0ad87" stroke-width="9" stroke-linecap="round"/>
+                    <path d="M-27-50Q-41-38-35-25" stroke="url(#cape)" stroke-width="14" fill="none" stroke-linecap="round" class="character-arm"/>
+                    <path d="M-19-56l8 31 15-5 10-24" fill="#e9c885" opacity=".93"/>
+                    <path d="M-15-80Q-18-104 0-107Q22-108 21-78v12q-2 20-22 20q-20-1-21-20Z" fill="#e9b991" stroke="#a77b60" stroke-width="3"/>
+                    <path d="M-20-81q-2-27 19-30q22-1 25 26l-8-7q-10 0-18-8q-4 12-18 19" fill="#514742" class="character-hair"/>
+                    <path d="M-16-101q-2-22 18-24q22-1 26 17l-8 6q-18-13-36 1Z" fill="#8f5e51"/>
+                    <path d="M-25-107q23-20 53-1l-2 8q-26-12-52 1Z" fill="#e6be7b"/>
+                    <g class="character-eyes"><ellipse cx="-8" cy="-75" rx="2.5" ry="3.5" fill="#3d3935"/><ellipse cx="10" cy="-75" rx="2.5" ry="3.5" fill="#3d3935"/></g>
+                    <path d="M-4-65q5 4 11-1" stroke="#93694c" stroke-width="2" stroke-linecap="round" fill="none"/>
+                    <path d="M-13-47q18 8 30 0" stroke="#c88b63" stroke-width="7" stroke-linecap="round" fill="none"/>
+                    <path d="M10-53q11 12 7 27" stroke="#e7bb76" stroke-width="8" stroke-linecap="round" fill="none"/>
+                    <path d="M-15-17l-2 11M14-15l2 8" stroke="#c99566" stroke-width="3"/>
+                  </g>
+                </g>
+                </g>
+                <!-- playful fox -->
+                <g class="fox-idle scene-clickable" data-spot="fox" tabindex="0" role="button" aria-label="Talk to the fox" transform="translate(333 446)">
+                  <ellipse cy="2" rx="24" ry="7" fill="#274539" opacity=".28"/>
+                  <path d="M-9-13q-29-18-28 1q9 15 29 9" fill="#bd794f" stroke="#945a44" stroke-width="2" class="fox-tail"/>
+                  <path d="M-16-8q13-16 26-5q12 10 7 17h-29Z" fill="#d38c59"/>
+                  <path d="M-11-16l-2-18 14 10 11-12 1 21" fill="#ca7e50" stroke="#945c47" stroke-width="2"/>
+                  <path d="M-12-12q9-12 24 0l-5 14h-15Z" fill="#f1d7ac"/>
+                  <circle cx="-6" cy="-17" r="2" fill="#423c3b"/><circle cx="5" cy="-17" r="2" fill="#423c3b"/>
+                </g>
+                <!-- a garden appears when the family reaches level 4 -->
+                <g class="unlock-garden scene-clickable" data-spot="garden" role="button" tabindex="0" aria-label="Visit the story garden">
+                  <ellipse cx="283" cy="383" rx="41" ry="22" fill="#406b51" opacity=".65"/>
+                  <path d="M251 386v-26m18 35v-28m18 31v-29m18 22v-29M244 363q35 11 68-4" stroke="#a28b66" stroke-width="6" stroke-linecap="round" fill="none"/>
+                  <path d="M258 380v-22m22 23v-30m22 26v-20" stroke="#477a51" stroke-width="4" stroke-linecap="round"/>
+                  <circle cx="258" cy="356" r="7" fill="#e5ac9d"/><circle cx="279" cy="348" r="7" fill="#f6d496"/><circle cx="302" cy="354" r="7" fill="#d9a5be"/>
+                  <circle cx="258" cy="356" r="2" fill="#fbedc3"/><circle cx="279" cy="348" r="2" fill="#fbedc3"/><circle cx="302" cy="354" r="2" fill="#fbedc3"/>
+                </g>
+                <!-- flying particles -->
+                <g class="world-fireflies" fill="#ffedaf">
+                  <circle cx="248" cy="230" r="3" class="firefly f1"/><circle cx="580" cy="233" r="3" class="firefly f2"/><circle cx="619" cy="327" r="2.8" class="firefly f3"/><circle cx="322" cy="333" r="2" class="firefly f4"/><circle cx="517" cy="200" r="2.6" class="firefly f5"/><circle cx="374" cy="462" r="2" class="firefly f6"/>
+                </g>
+              </g>
+            </svg>
+    <div class="scene-vignette" aria-hidden="true"></div>
+    <div id="floatingMessage" class="floating-message" role="status" aria-live="polite"></div>
+    <div class="world-titleplate" aria-hidden="true"><span>✧</span><strong>EVERGROVE</strong><small>WHERE EVERY MOMENT BECOMES A STORY</small></div>
+    <div class="world-hotspots" aria-label="Location shortcuts">
+      <button class="spot-pill" type="button" data-go="fox" aria-label="Visit the fox">Fox</button>
+      <button class="spot-pill" type="button" data-go="pond" aria-label="Visit wishing pond">Pond</button>
+      <button class="spot-pill" type="button" data-go="cottage" aria-label="Visit cottage">Cottage</button>
+      <button class="spot-pill" type="button" data-go="lantern" aria-label="Visit lantern">Lantern</button>
+    </div>
+  </main>
+  <div class="game-quest-tease" id="questTease"><span class="tease-star" aria-hidden="true">✧</span><div><small>YOUR NEXT CHAPTER</small><strong id="teaseName">The First Footsteps</strong></div><button id="teaseButton" type="button">BEGIN <span aria-hidden="true">→</span></button></div>
+  <footer class="game-bottom" aria-label="Game controls">
+    <div class="dpad" role="group" aria-label="Movement controls">
+       <button type="button" data-move="up" aria-label="Walk up">↑</button>
+       <button type="button" data-move="left" aria-label="Walk left">←</button>
+       <button type="button" data-move="down" aria-label="Walk down">↓</button>
+       <button type="button" data-move="right" aria-label="Walk right">→</button>
+    </div>
+    <div class="game-actions">
+      <button type="button" class="dock-button" id="questsButton"><span class="dock-glyph">✦</span><span>QUESTS</span></button>
+      <button type="button" class="dock-button" id="chronicleButton"><span class="dock-glyph">▤</span><span>CHRONICLE</span></button>
+      <button type="button" class="dock-button" id="mapButton"><span class="dock-glyph">⌘</span><span>MAP</span></button>
+    </div>
+    <span class="game-hint">TAP TO WALK · DISCOVER THE WORLD</span>
+  </footer>
+  <div id="dialogLayer" class="dialog-layer" hidden>
+    <div class="dialog-scrim" data-close-dialog></div>
+    <section id="dialogCard" class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+      <button id="dialogClose" class="dialog-close" type="button" aria-label="Close">×</button>
+      <div id="dialogBody"></div>
+    </section>
+  </div>
+  <div id="celebration" class="celebration" aria-live="polite" aria-atomic="true" hidden><div class="celebration-ring">✧</div><strong id="celebrateTitle">CHAPTER COMPLETE</strong><small id="celebrateDesc"></small></div>
+  <div class="first-run" id="firstRun" hidden><div class="opening-stars" aria-hidden="true">✧ ✦ ✧</div><span class="opening-eyebrow">THE ADVENTURE BOOK · VOLUME I</span><h1>Every story starts<br>with a <em>first step.</em></h1><p>Welcome to Evergrove. Walk among the trees, meet the fox, discover little quests, and watch your world grow. All adventurers begin at Level 0.</p><button type="button" id="beginButton">ENTER EVERGROVE <span aria-hidden="true">→</span></button><small>FREE PLAY · DEVICE SAVE · NO ACCOUNT REQUIRED</small></div>
+</div>
+</body></html>
