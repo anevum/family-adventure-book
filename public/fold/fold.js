@@ -114,7 +114,7 @@ function openQuest(id){
 }
 function resolveChapter(ref){
  if(typeof ref!=='string')return null;
- const daily=/^daily:(\\d{4}-\\d{2}-\\d{2}):(spark|connection|curiosity)$/.exec(ref);
+ const daily=/^daily:(\d{4}-\d{2}-\d{2}):(spark|connection|curiosity)$/.exec(ref);
  if(daily){
   const entry=save.runs.find(x=>x.day===daily[1]&&x.id===daily[2]);
   const q=DAILY_QUEST_MAP[daily[2]];
