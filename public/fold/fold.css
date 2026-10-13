@@ -10,3 +10,10 @@
 .live-map .maplibregl-ctrl-bottom-right{bottom:112px;right:12px}
 .live-map .maplibregl-ctrl-attrib{background:#fff7dcbb!important;border-radius:7px;font-size:10px}
 @media(max-width:760px){.live-map .maplibregl-ctrl-bottom-right{bottom:177px;right:4px}.live-map .maplibregl-ctrl-attrib{font-size:8px}.live-quest-pin{width:35px;height:35px;font-size:23px}}
+
+/* Short landscape devices show a usable sheet instead of squeezing the sheet below the dock. */
+@media(max-height:520px) and (min-width:620px){
+ .panel{top:10px;bottom:10px;right:12px;left:auto;width:min(480px,calc(100vw - 24px));max-height:calc(100dvh - 20px);transform:none;animation:none}
+ .panel .actions{margin-top:10px}
+ .panel h2{font-size:26px}
+}
