@@ -16,3 +16,5 @@
 .world-hearthlight .lamp-aura{opacity:1;filter:drop-shadow(0 0 19px #eec97b)}
 @media(max-width:1050px){.quest-starter{grid-template-columns:52px 1fr}.quest-starter-actions{grid-column:2;flex-direction:row;flex-wrap:wrap}.quest-starter-actions .button{flex:1 1 170px}}
 @media(max-width:600px){.quest-starter{grid-template-columns:1fr}.quest-starter-actions{grid-column:auto;flex-direction:column}}
+
+@media(max-width:600px){.quest-starter-actions .button{flex:0 0 auto;min-height:46px;width:100%;padding:12px 14px}}
