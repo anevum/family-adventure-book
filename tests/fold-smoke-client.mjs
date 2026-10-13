@@ -38,7 +38,7 @@ async function run(){
   assert($('#game')?.dataset.map==='demo','Illustrated map must be default without GPS');
   assert($('#mapModeText')?.textContent.includes('NO GPS'),'Demo GPS disclosure missing');
   assert($('#demoPins')?.querySelectorAll('[data-quest]').length===3,'Demo quest pins missing');
-  if(scenario==='intro'){document.documentElement.dataset.foldSmoke='pass';return;}
+  if(scenario==='intro'){await delay(520);document.documentElement.dataset.foldSmoke='pass';return;}
   $('#introPlay').click();
   await waitFor(()=>$('#intro')?.hidden===true,'enter game');
   assertNoOverflow();
@@ -49,7 +49,7 @@ async function run(){
   if(scenario==='world'){
    assert($('#panel').hidden,'World overview obscured by a panel');
    assert($('[data-quest="first"]')?.getBoundingClientRect().width>0,'World quest pin missing');
-   document.documentElement.dataset.foldSmoke='pass';
+   await delay(520);document.documentElement.dataset.foldSmoke='pass';
    return;
   }
   if(scenario==='quests'||scenario==='starter'){
@@ -66,7 +66,7 @@ async function run(){
    }
    assert($('.quest-choice .glyph use')?.getAttribute('href')?.includes('ic-'),'Quest emblems are not SVG');
    assertNoOverflow();
-   document.documentElement.dataset.foldSmoke='pass';
+   await delay(520);document.documentElement.dataset.foldSmoke='pass';
    return;
   }
   if(scenario==='daily'){
@@ -92,7 +92,7 @@ async function run(){
    if(!$('#panel').dataset.view.startsWith('book'))$('[data-panel="book"]').click();
    assert($('.book-stamp')?.textContent?.includes('DAILY EXPEDITION')||$('.book-entry')?.textContent?.includes('A Small Spark'),'Daily chapter absent from Adventure Book');
    assertNoOverflow();
-   document.documentElement.dataset.foldSmoke='pass';
+   await delay(520);document.documentElement.dataset.foldSmoke='pass';
    return;
   }
   // Existing first-chapter contract remains the same.
@@ -117,7 +117,7 @@ async function run(){
    assert($('#panelBody .book-stamp')||$('#panelBody .book-entry'),'Book visual state missing');
   }
   assertNoOverflow();
-  document.documentElement.dataset.foldSmoke='pass';
+  await delay(520);document.documentElement.dataset.foldSmoke='pass';
  }catch(error){
   document.documentElement.dataset.foldSmoke='fail';
   document.documentElement.dataset.foldSmokeError=String(error.message).slice(0,180);
