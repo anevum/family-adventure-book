@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SAVE_KEY,QUESTS,newSave,normalizeSave,loadSave,progression,xpToNext,xpForLevel,earnedXP,isDone,setStep,stepProgress,completeQuest,escapeHtml} from '../public/fold/core.mjs';
+import {SAVE_KEY,QUESTS,newSave,normalizeSave,loadSave,progression,xpToNext,xpForLevel,earnedXP,isDone,setStep,stepProgress,completeQuest,escapeHtml,DAILY_QUESTS,DAILY_QUEST_MAP,localDay,isValidDay,dailyKey,dailyDone,dailyStepProgress,setDailyStep,completeDaily,MAX_DAILY_RECORDS} from '../public/fold/core.mjs';
 import {SAMPLE_CENTER,BASE_STYLE,ATLAS,validMapPoint,atlasPaintFor,applyFoldAtlas} from '../public/fold/atlas.mjs';
 
 test('all first-time players start Level 0, zero XP and no chapters',()=>{
@@ -72,4 +72,76 @@ test('atlas gracefully skips unavailable map styles and unsupported properties',
  assert.deepEqual(result,{layers:3,painted:2});
  assert.deepEqual(calls[0],['background','background-color',ATLAS.paper]);
  assert.deepEqual(calls[1],['water','fill-color',ATLAS.water]);
+});
+
+test('daily quests give continued play without GPS or fabricated collaborators',()=>{
+ assert.equal(DAILY_QUESTS.length,3);
+ assert.equal(DAILY_QUESTS.reduce((n,q)=>n+q.xp,0),70);
+ assert.equal(DAILY_QUEST_MAP.connection.steps.length,2);
+ const morning=new Date(2026,9,13,10,30);
+ const day=localDay(morning);
+ assert.equal(day,'2026-10-13');
+ let save=newSave();
+ assert.equal(completeDaily(save,'spark','',morning).awarded,false);
+ save=setDailyStep(save,'spark',0,true,day);
+ assert.equal(completeDaily(save,'spark','',morning).awarded,false);
+ save=setDailyStep(save,'spark',1,true,day);
+ assert.deepEqual(dailyStepProgress(save,'spark',day),[true,true]);
+ const result=completeDaily(save,'spark','Cooked a new snack',morning);
+ assert.equal(result.awarded,true);
+ assert.equal(result.xp,20);
+ assert.equal(result.save.runs.length,1);
+ assert.equal(result.save.runs[0].note,'Cooked a new snack');
+ assert.equal(earnedXP(result.save),20);
+ assert.equal(dailyDone(result.save,'spark',day),true);
+ assert.equal(completeDaily(result.save,'spark','second claim',morning).awarded,false);
+ assert.equal(earnedXP(loadSave(JSON.stringify(result.save))),20);
+ assert.equal(result.save.runs[0].day,day);
+ assert.equal('coords' in result.save.runs[0],false);
+});
+test('daily expedition is available again next local day without duplicating the prior reward',()=>{
+ const d1=new Date(2026,9,13,12),d2=new Date(2026,9,14,12);
+ let s=setDailyStep(setDailyStep(newSave(),'curiosity',0,true,localDay(d1)),'curiosity',1,true,localDay(d1));
+ s=completeDaily(s,'curiosity','Yesterday',d1).save;
+ assert.equal(dailyDone(s,'curiosity',localDay(d1)),true);
+ assert.equal(dailyDone(s,'curiosity',localDay(d2)),false);
+ assert.equal(completeDaily(s,'curiosity','',d2).awarded,false);
+ s=setDailyStep(setDailyStep(s,'curiosity',0,true,localDay(d2)),'curiosity',1,true,localDay(d2));
+ s=completeDaily(s,'curiosity','Today',d2).save;
+ assert.equal(s.runs.length,2);
+ assert.equal(earnedXP(s),50);
+ assert.equal(completeDaily(s,'curiosity','again',d2).awarded,false);
+});
+test('prior v1 starter progress migrates into extended save without losing chapters',()=>{
+ const old={version:1,seenIntro:true,name:'Player',done:[{id:'first',when:'2026-10-12',note:'An old memory'}],steps:{first:[true,true]},createdAt:'2026-10-12T12:00:00.000Z'};
+ const migrated=loadSave(JSON.stringify(old));
+ assert.equal(migrated.name,'Player');
+ assert.equal(migrated.done[0].note,'An old memory');
+ assert.equal(migrated.runs.length,0);
+ assert.deepEqual(migrated.dailySteps,{});
+ assert.equal(earnedXP(migrated),80);
+ assert.equal(isDone(migrated,'first'),true);
+});
+test('invalid or duplicate daily records, malformed dates and oversized notes cannot mint XP',()=>{
+ assert.equal(isValidDay('2026-02-30'),false);
+ assert.equal(isValidDay('2026-10-13'),true);
+ assert.equal(isValidDay('2026-13-01'),false);
+ assert.equal(dailyKey('spark','2026-02-30'),'');
+ assert.equal(dailyKey('missing','2026-10-13'),'');
+ const bad={version:1,runs:[
+  {id:'spark',day:'2026-10-13',note:'A'.repeat(1500)},
+  {id:'spark',day:'2026-10-13',note:'duplicate'},
+  {id:'spark',day:'2026-02-30'},
+  {id:'unknown',day:'2026-10-13'},
+  {id:'connection',day:'not-a-date'}],
+  dailySteps:{'2026-10-13:spark':[true,'true'],'not-a-date:spark':[true,true]}};
+ const safe=normalizeSave(bad);
+ assert.equal(safe.runs.length,1);
+ assert.equal(safe.runs[0].note.length,300);
+ assert.equal(earnedXP(safe),20);
+ assert.deepEqual(dailyStepProgress(safe,'spark','2026-10-13'),[true,false]);
+ assert.equal(setDailyStep(safe,'missing',0,true,'2026-10-13'),safe);
+ assert.equal(setDailyStep(safe,'spark',0,true,'2026-10-13'),safe);
+ assert.equal(completeDaily(newSave(),'spark','',new Date('invalid')).awarded,false);
+ assert.equal(MAX_DAILY_RECORDS,5000);
 });
