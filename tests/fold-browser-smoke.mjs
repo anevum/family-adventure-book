@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-const root=fileURLToPath(new URL('../public/fold/',import.meta.url));
+const root=resolve(fileURLToPath(new URL('../public/fold/',import.meta.url)));
 const artifacts=fileURLToPath(new URL('../test-artifacts/',import.meta.url));
 const chrome=process.env.FOLD_CHROME||['google-chrome','chromium','chromium-browser']
  .find(bin=>spawnSync('which',[bin],{stdio:'ignore'}).status===0);
