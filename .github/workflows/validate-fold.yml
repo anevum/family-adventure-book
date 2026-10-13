@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - 'public/fold/**'
-      - 'tests/fold-core.test.mjs'
+      - 'tests/fold-*.mjs'
       - '.github/workflows/validate-fold.yml'
 jobs:
   playable-check:
@@ -18,7 +18,19 @@ jobs:
           node --check public/fold/fold.js
           node --check public/fold/core.mjs
           node --check public/fold/atlas.mjs
+          node --check tests/fold-browser-smoke.mjs
+          node --check tests/fold-smoke-client.mjs
           node --test tests/fold-core.test.mjs
+      - name: Browser playthrough, five responsive sizes
+        run: node tests/fold-browser-smoke.mjs
+      - name: Upload mobile and desktop screenshot captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-fold-responsive-captures
+          path: test-artifacts/fold-*.png
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload playable static review
         uses: actions/upload-artifact@v4
         with:
