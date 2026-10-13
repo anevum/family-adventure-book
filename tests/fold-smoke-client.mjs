@@ -1,40 +1,92 @@
-// Browser-only smoke harness injected by the CI review runner (never included in the game bundle).
+// Browser-only acceptance harness injected by the local CI runner. Never shipped in game.
 const $=s=>document.querySelector(s);
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const assert=(value,message)=>{if(!value)throw Error(message);};
+const scenario=new URL(location.href).searchParams.get('scenario')||'playthrough';
 async function waitFor(check,message){
- for(let attempt=0;attempt<90;attempt++){if(check())return;await delay(45);}
+ for(let attempt=0;attempt<100;attempt++){if(check())return;await delay(40);}
  throw Error('Timed out: '+message);
+}
+function inViewport(node){
+ const r=node.getBoundingClientRect();
+ return r.width>0&&r.height>0&&r.left>=-1&&r.right<=innerWidth+1&&r.top>=-1&&r.bottom<=innerHeight+1;
+}
+function assertNoOverflow(){
+ assert(document.documentElement.scrollWidth<=innerWidth+1,'Horizontal viewport overflow');
+ assert(document.documentElement.scrollHeight<=innerHeight+1,'Vertical viewport overflow');
+}
+async function assertIcons(){
+ const sprite=await fetch('./icons.svg');
+ assert(sprite.ok,'Custom Fold glyph sprite was not delivered');
+ assert((sprite.headers.get('content-type')||'').includes('image/svg+xml'),'Incorrect SVG MIME type');
+ const text=await sprite.text();
+ const xml=new DOMParser().parseFromString(text,'image/svg+xml');
+ assert(!xml.querySelector('parsererror'),'SVG sprite is malformed');
+ const all=[...document.querySelectorAll('use[href*="#ic-"]')];
+ assert(all.length>=14,'Game HUD has too few custom glyphs');
+ for(const use of all){
+  const id=use.getAttribute('href')?.split('#')[1];
+  assert(Boolean(id)&&Boolean(xml.getElementById(id)),'Missing glyph: '+id);
+ }
 }
 async function run(){
  try{
- await waitFor(()=>$('#intro')?.hidden===false,'first-run entry');
- assert($('#levelNumber')?.textContent==='0','new player must start at Level 0');
- assert($('#xpText')?.textContent==='0 / 80 XP','first level XP must be zero');
- assert($('#game')?.dataset.map==='demo','GPS-off illustrated map must be default');
- assert($('#mapModeText')?.textContent.includes('NO GPS'),'demo map disclosure missing');
- assert($('#demoPins')?.querySelectorAll('[data-quest]').length===3,'demo quest pins missing');
- $('#introPlay').click();
- await waitFor(()=>$('#intro')?.hidden===true,'enter game');
- $('#nextGo').click();
- await waitFor(()=>$('#panel')?.hidden===false&&Boolean($('input[data-step-id="first"]')),'open first chapter');
- assert($('[data-action="finish"]')?.disabled===true,'quest can be completed without any steps');
- $('input[data-step-id="first"][data-step-num="0"]').click();
- assert($('[data-action="finish"]')?.disabled===true,'quest can be completed with only one step');
- $('input[data-step-id="first"][data-step-num="1"]').click();
- assert($('[data-action="finish"]')?.disabled===false,'quest remains disabled after both steps');
- $('[data-action="finish"]').click();
- await waitFor(()=>$('#levelNumber')?.textContent==='1','Level 1 progression');
- const save=JSON.parse(localStorage.getItem('the-fold-local-playtest-v1'));
- assert(save.done?.length===1&&save.done[0].id==='first','exactly one chapter must be saved');
- assert($('#xpText')?.textContent.includes('0 / 100 XP'),'XP progression to level 1 incorrect');
- assert(document.documentElement.scrollWidth<=window.innerWidth+1,'horizontal page overflow');
- assert(document.documentElement.scrollHeight<=window.innerHeight+1,'vertical page overflow');
- await waitFor(()=>$('#celebrate')?.hidden===true,'reward overlay dismissal');
- document.documentElement.dataset.foldSmoke='pass';
-}catch(error){
- document.documentElement.dataset.foldSmoke='fail';
- document.documentElement.dataset.foldSmokeError=String(error.message).slice(0,180);
+  await waitFor(()=>$('#intro')?.hidden===false,'first-run entrance');
+  await assertIcons();
+  assert($('#levelNumber')?.textContent==='0','Start level must be zero');
+  assert($('#xpText')?.textContent==='0 / 80 XP','First level XP must be zero');
+  assert($('#game')?.dataset.map==='demo','Illustrated map must be default without GPS');
+  assert($('#mapModeText')?.textContent.includes('NO GPS'),'Demo GPS disclosure missing');
+  assert($('#demoPins')?.querySelectorAll('[data-quest]').length===3,'Demo quest pins missing');
+  $('#introPlay').click();
+  await waitFor(()=>$('#intro')?.hidden===true,'enter game');
+  assertNoOverflow();
+  assert(inViewport($('#progressButton')),'XP HUD outside viewport');
+  assert(inViewport($('#privacyButton')),'Privacy control outside viewport');
+  assert(inViewport($('#nextGo')),'Primary action outside viewport');
+  assert(inViewport($('[data-panel="quests"]')),'Quest navigation outside viewport');
+  if(scenario==='world'){
+   assert($('#panel').hidden,'World overview obscured by a panel');
+   assert($('[data-quest="first"]')?.getBoundingClientRect().width>0,'World quest pin missing');
+   document.documentElement.dataset.foldSmoke='pass';
+   return;
+  }
+  if(scenario==='quests'){
+   $('[data-panel="quests"]').click();
+   await waitFor(()=>!$('#panel').hidden&&Boolean($('.quest-choice')),'Quest board open');
+   assert($('#panel').dataset.view==='quests','Quest board not correctly labeled');
+   assert($('.quest-choice .glyph use')?.getAttribute('href')?.includes('ic-'),'Quest emblems are not SVG');
+   assertNoOverflow();
+   document.documentElement.dataset.foldSmoke='pass';
+   return;
+  }
+  // Existing first-chapter contract remains the same.
+  $('#nextGo').click();
+  await waitFor(()=>!$('#panel').hidden&&Boolean($('input[data-step-id="first"]')),'first chapter open');
+  assert($('#panel').dataset.view==='quest:first','quest modal role not set');
+  assert($('[data-action="finish"]')?.disabled===true,'Unfinished quest could award XP');
+  $('input[data-step-id="first"][data-step-num="0"]').click();
+  assert($('[data-action="finish"]')?.disabled===true,'One checkpoint allowed completion');
+  $('input[data-step-id="first"][data-step-num="1"]').click();
+  assert($('[data-action="finish"]')?.disabled===false,'Two checkpoints failed to unlock completion');
+  $('[data-action="finish"]').click();
+  await waitFor(()=>$('#levelNumber')?.textContent==='1','level up');
+  const save=JSON.parse(localStorage.getItem('the-fold-local-playtest-v1'));
+  assert(save.done?.length===1&&save.done[0].id==='first','Not exactly one saved chapter');
+  assert($('#xpText')?.textContent.includes('0 / 100 XP'),'Level 1 XP wrong');
+  await waitFor(()=>$('#celebrate')?.hidden===true,'reward overlay');
+  if(scenario==='book'){
+   // The automatic chapter panel may already be opening.
+   if($('#panel').hidden)$('[data-panel="book"]').click();
+   await waitFor(()=>!$('#panel').hidden&&$('#panel').dataset.view.startsWith('book'),'book chapter open');
+   assert($('#panelBody .book-stamp')||$('#panelBody .book-entry'),'Book visual state missing');
+  }
+  assertNoOverflow();
+  document.documentElement.dataset.foldSmoke='pass';
+ }catch(error){
+  document.documentElement.dataset.foldSmoke='fail';
+  document.documentElement.dataset.foldSmokeError=String(error.message).slice(0,180);
+ }
 }
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});
+else run();
