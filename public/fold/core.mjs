@@ -13,8 +13,8 @@ export const QUEST_MAP=Object.fromEntries(QUESTS.map(q=>[q.id,q]));
 export const xpToNext = level => 80+20*level;
 export const xpForLevel = level => 10*level*level+70*level;
 export function progression(total){
- const xp=Math.min(1_000_000,Math.max(0,Math.floor(Number(total)||0)));
- let level=0;while(xpForLevel(level+1)<=xp&&level<500)level++;
+ const number=Number(total);const xp=Number.isFinite(number)?Math.max(0,Math.floor(number)):0;
+ const level=Math.max(0,Math.floor((-7+Math.sqrt(49+0.4*xp))/2));
  return {level,total:xp,inLevel:xp-xpForLevel(level),target:xpToNext(level),fraction:(xp-xpForLevel(level))/xpToNext(level)};
 }
 export function newSave(){return {version:1,seenIntro:false,name:'Explorer',done:[],steps:{},createdAt:new Date().toISOString()};}
