@@ -12,3 +12,10 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/check-release.mjs
+      - name: Package local Evergrove playtest
+        uses: actions/upload-artifact@v4
+        with:
+          name: evergrove-local-playtest
+          path: public/
+          retention-days: 7
+
