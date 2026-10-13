@@ -1,7 +1,8 @@
 import {SAVE_KEY,QUESTS,QUEST_MAP,newSave,loadSave,normalizeSave,cleanText,escapeHtml,earnedXP,progression,isDone,stepProgress,setStep,completeQuest} from './core.mjs';
+import {SAMPLE_CENTER,BASE_STYLE,validMapPoint,applyFoldAtlas} from './atlas.mjs';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-let save=readLocal(),openView='',returnFocus=null,toastTimer=0,rewardTimer=0,mapInstance=null,maplibre=null,liveReady=false,attemptingMap=false,userMarker=null,markers=[],lastPosition=null;
-const PLACE=[-122.338,47.610],MAP_STYLE='https://tiles.openfreemap.org/styles/bright';
+let save=readLocal(),openView='',returnFocus=null,toastTimer=0,rewardTimer=0,mapInstance=null,maplibre=null,liveReady=false,attemptingMap=false,userMarker=null,mapBookmark=null,lastPosition=null,mapIntent=false,mapRegion='sample',locationToken=0;
+const PLACE=SAMPLE_CENTER,MAP_STYLE=BASE_STYLE;
 function readLocal(){try{return loadSave(localStorage.getItem(SAVE_KEY));}catch{return newSave();}}
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));return true;}catch{toast('Device saving is unavailable. Your progress may disappear.');return false;}}
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),3600);}
@@ -74,7 +75,7 @@ function openSettings(){
  openPanel(title('YOUR LITTLE WORLD','Game settings','Customize your local game save. No sign-in or cloud storage is connected.')+'<label for="playerName" class="form-label">Adventurer name</label><input id="playerName" type="text" maxlength="28" value="'+escapeHtml(save.name)+'"><div class="actions">'+uiButton('Save name','save-name')+uiButton('Export save','export','','secondary')+'</div><div class="actions">'+uiButton('Clear local progress','confirm-reset','','danger')+'</div><p class="small">This private prototype does not have account recovery or encrypted memory storage. Do not record sensitive information here.</p>','settings');
 }
 function askLive(){
- openPanel(title('OPTIONAL MAP FEATURE','Unfold the real map','This uses MapLibre and OpenFreeMap to show a real-world map. Their servers receive map-tile requests for the area you view. The Fold does not request GPS unless you choose to locate yourself.')+'<div class="privacy-notice">The illustrated demo is fully playable offline. Quest pins on the real map are activity prompts, not confirmed destinations or directions.</div><div class="actions">'+uiButton('Load real map','enable-live')+uiButton('Keep illustrated map','close','','secondary')+'</div>','ask-live');
+ openPanel(title('OPTIONAL MAP FEATURE','Unfold the real map','This uses MapLibre and OpenFreeMap. The Fold recolors geographic map layers but does not verify venues or activities. The tile provider receives requests for the region you view. You can pan and place a temporary personal marker without turning on GPS.')+'<div class="privacy-notice">The illustrated demo is fully playable offline. Tap the real map to place your own temporary activity mark. It is neither a verified venue nor a saved route; nothing is shared with another player.</div><div class="actions">'+uiButton('Load real map','enable-live')+uiButton('Keep illustrated map','close','','secondary')+'</div>','ask-live');
 }
 function saveNote(id){const record=save.done.find(x=>x.id===id);if(!record)return;record.note=cleanText($('#editNote')?.value,300);persist();openBook(id);toast('Your story has been updated');}
 function exportSave(){
@@ -88,62 +89,110 @@ function finish(id){
  save=result.save;persist();closePanel();updateHUD();showReward(q,result);
  setTimeout(()=>{if($('#panel').hidden)openBook(id);},1880);
 }
+function updateMapContext(){
+ const live=$('#game').dataset.map==='live';
+ $('#mapAreaName').textContent=live?(mapRegion==='located'?'Your Area':mapRegion==='manual'?'Your Exploration':'Example · Seattle'):'The Common';
+ $('#mapModeText').textContent=live?(mapRegion==='located'?'GPS USED ONCE · PRIVATE':mapRegion==='manual'?'EXPLORING MAP · NO LIVE TRACKING':'EXAMPLE MAP · SEATTLE'):'ILLUSTRATED DEMO · NO GPS';
+ $('#mapHintText').textContent=live?'TAP ANYWHERE TO PLACE A PRIVATE QUEST MARK':'SELECT A QUEST PIN TO BEGIN';
+}
 async function enableLive(){
- if(attemptingMap){toast('Loading map…');return;}
- if(liveReady){$('#game').dataset.map='live';$('#liveMap').setAttribute('aria-hidden','false');closePanel();toast('Real map shown · location remains off');return;}
- attemptingMap=true;toast('Loading live map tiles…');
+ mapIntent=true;
+ if(attemptingMap){toast('Real map is still loading…');return;}
+ if(liveReady){
+  $('#game').dataset.map='live';$('#liveMap').setAttribute('aria-hidden','false');
+  mapInstance?.resize();closePanel();updateMapContext();
+  toast('Real map ready · GPS remains optional');return;
+ }
+ attemptingMap=true;toast('Loading real-world map…');
  try{
   const module=await import('https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs');
   maplibre=module;
   mapInstance=new module.Map({container:'liveMap',style:MAP_STYLE,center:PLACE,zoom:13,attributionControl:true,interactive:true});
   await new Promise((resolve,reject)=>{
-   const timer=setTimeout(()=>reject(new Error('map timed out')),14000);
+   const timer=setTimeout(()=>reject(new Error('Map timed out')),14000);
    mapInstance.once('load',()=>{clearTimeout(timer);resolve();});
-   mapInstance.once('error',e=>{if(!mapInstance?.loaded()){clearTimeout(timer);reject(e.error||Error('map unavailable'));}});
+   mapInstance.once('error',e=>{if(!mapInstance?.loaded()){clearTimeout(timer);reject(e.error||Error('Map unavailable'));}});
   });
-  liveReady=true;$('#game').dataset.map='live';$('#liveMap').setAttribute('aria-hidden','false');
-  spawnPins(PLACE);mapInstance.resize();closePanel();$('#mapAreaName').textContent='The World';toast('Explore the real map. Your location is still off.');
- }catch(e){
-  try{mapInstance?.remove();}catch{}mapInstance=null;liveReady=false;
-  $('#game').dataset.map='demo';toast('Live map unavailable. Illustrated demo remains playable.');
+  liveReady=true;
+  applyFoldAtlas(mapInstance);
+  mapInstance.on('click',event=>{
+   if(!mapIntent||$('#game').dataset.map!=='live')return;
+   const point=validMapPoint(event.lngLat?.lng,event.lngLat?.lat);
+   if(point)placeBookmark(point);
+  });
+  mapInstance.on('dragstart',()=>{mapRegion='manual';updateMapContext();});
+  if(mapIntent){
+   $('#game').dataset.map='live';$('#liveMap').setAttribute('aria-hidden','false');
+   mapInstance.resize();closePanel();updateMapContext();
+   toast('Tap anywhere to mark an adventure · GPS is off');
+  }else updateMapContext();
+ }catch{
+  try{mapInstance?.remove();}catch{}
+  mapInstance=null;liveReady=false;mapIntent=false;
+  $('#game').dataset.map='demo';$('#liveMap').setAttribute('aria-hidden','true');
+  updateMapContext();toast('Map unavailable · illustrated game remains playable');
  }finally{attemptingMap=false;}
 }
-function spawnPins(center){
- for(const m of markers)m.remove();markers=[];
+function clearBookmark(){
+ if(mapBookmark){mapBookmark.remove();mapBookmark=null;}
+}
+function placeBookmark(point){
  if(!maplibre||!mapInstance)return;
- const coords=[[center[0]-.010,center[1]+.006],[center[0]+.010,center[1]+.005],[center[0]+.006,center[1]-.007]];
- ['first','us','wonder'].forEach((id,i)=>{
-  const el=document.createElement('button'),q=QUEST_MAP[id];el.type='button';el.className='live-quest-pin';el.textContent=q.symbol;el.setAttribute('aria-label','Open '+q.title+' activity prompt');el.title=q.title+' · activity prompt, not a venue';el.addEventListener('click',e=>{e.stopPropagation();openQuest(id);});
-  markers.push(new maplibre.Marker({element:el,anchor:'bottom'}).setLngLat(coords[i]).addTo(mapInstance));
- });
+ clearBookmark();
+ const el=document.createElement('button');
+ el.type='button';el.className='live-quest-pin';
+ el.textContent='✦';el.title='Your temporary quest mark';
+ el.setAttribute('aria-label','Open your temporary quest mark');
+ el.addEventListener('click',event=>{event.stopPropagation();openBookmark();});
+ mapBookmark=new maplibre.Marker({element:el,anchor:'bottom'}).setLngLat(point).addTo(mapInstance);
+ toast('Temporary mark placed · tap it to choose a quest');
+}
+function openBookmark(){
+ if(!mapBookmark)return openQuests();
+ openPanel(title('YOUR OWN MAP MARK','An adventure starts here','You marked this point yourself. The Fold has not verified a venue, route, nearby activity or the safety of this location.')+
+ '<div class="privacy-notice">This marker stays only in browser memory. It is not a saved route, a quest completion, or a shared position.</div>'+
+ '<div class="actions">'+uiButton('Choose an adventure','all-quests')+uiButton('Remove marker','remove-bookmark','','secondary')+'</div>','bookmark');
 }
 function clearLocation(){
- lastPosition=null;
+ locationToken++;lastPosition=null;
  if(userMarker){userMarker.remove();userMarker=null;}
- updateHUD();toast('Location cleared from this session');if(openView==='privacy')openPrivacy();
+ clearBookmark();mapRegion='sample';
+ // Clearing a marker alone would leave the visible map centered on the sensitive area.
+ // Reset the viewport as well, removing that view from the screen.
+ if(liveReady&&mapInstance)mapInstance.jumpTo({center:PLACE,zoom:13});
+ updateHUD();updateMapContext();
+ toast('Location and temporary mark cleared · example map restored');
+ if(openView==='privacy')openPrivacy();
 }
 function locateOnce(){
  if(!navigator.geolocation){toast('Location is not supported in this browser');return;}
- closePanel();
- // This is a user-initiated one-time lookup only, never watchPosition or background sharing.
+ const token=++locationToken;closePanel();toast('Requesting location once…');
+ // User-initiated foreground lookup: never use watchPosition or save coordinates.
  navigator.geolocation.getCurrentPosition(async position=>{
-  const {latitude,longitude}=position.coords;if(!Number.isFinite(latitude)||!Number.isFinite(longitude))return toast('Location unavailable');
-  lastPosition=[longitude,latitude];updateHUD();
+  if(token!==locationToken)return;
+  const point=validMapPoint(position.coords.longitude,position.coords.latitude);
+  if(!point){toast('Location unavailable · play without GPS');return;}
   if(!liveReady)await enableLive();
-  if(liveReady&&mapInstance){mapInstance.flyTo({center:lastPosition,zoom:14});spawnPins(lastPosition);
-   if(userMarker)userMarker.remove();
-   const el=document.createElement('div');el.className='live-self-marker';el.textContent='YOU';el.setAttribute('aria-label','Your one-time position');
-   userMarker=new maplibre.Marker({element:el}).setLngLat(lastPosition).addTo(mapInstance);
-  }
-  toast('Centered on your position once · no sharing or route recording');
+  if(token!==locationToken)return;
+  if(!liveReady||!mapInstance){toast('Map unavailable · location not retained');return;}
+  lastPosition=point;mapRegion='located';clearBookmark();
+  mapInstance.jumpTo({center:point,zoom:14});
+  if(userMarker)userMarker.remove();
+  const el=document.createElement('div');el.className='live-self-marker';
+  el.textContent='YOU';el.setAttribute('aria-label','Your one-time position, not shared');
+  userMarker=new maplibre.Marker({element:el}).setLngLat(point).addTo(mapInstance);
+  updateHUD();updateMapContext();
+  toast('Centered once · no tracking or sharing');
  },error=>{
-  const msg=error.code===1?'Location denied. You can play without GPS.':'Location unavailable. You can play without GPS.';
-  toast(msg);
+  if(token!==locationToken)return;
+  toast(error.code===1?'Location denied · play without GPS':'Location unavailable · play without GPS');
  },{enableHighAccuracy:false,timeout:11000,maximumAge:60000});
 }
 function demoMap(){
- $('#game').dataset.map='demo';$('#liveMap').setAttribute('aria-hidden','true');$('#mapAreaName').textContent='The Common';
- clearLocation();closePanel();toast('Illustrated map · no GPS required');
+ mapIntent=false;
+ $('#game').dataset.map='demo';$('#liveMap').setAttribute('aria-hidden','true');
+ clearLocation();closePanel();updateMapContext();
+ toast('Illustrated world · no GPS required');
 }
 function resetConfirm(){
  openPanel(title('START A NEW STORY','Clear your local progress?','This permanently clears your saved chapters, memories and earned XP on this device.')+'<div class="actions">'+uiButton('Yes, start again','reset','','danger')+uiButton('Keep my story','settings','','secondary')+'</div>','reset-confirm');
@@ -170,6 +219,7 @@ function handleAction(name,trigger){
   case 'enable-live':enableLive();break;
   case 'locate-once':locateOnce();break;
   case 'clear-location':clearLocation();break;
+  case 'remove-bookmark':clearBookmark();closePanel();toast('Temporary mark removed');break;
  }
 }
 function bind(){
@@ -212,5 +262,5 @@ function bind(){
  });
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persist();});
 }
-function init(){updateHUD();bind();$('#intro').hidden=Boolean(save.seenIntro);if(!save.seenIntro)$('#introPlay').focus();}
+function init(){updateHUD();bind();updateMapContext();$('#intro').hidden=Boolean(save.seenIntro);if(!save.seenIntro)$('#introPlay').focus();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
