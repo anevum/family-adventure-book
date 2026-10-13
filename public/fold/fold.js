@@ -170,7 +170,15 @@ function openFold(){
 }
 function openProgress(){
  const earned=earnedXP(save),p=point(earned),first=isDone(save,'first');
- openPanel(title('YOUR JOURNEY','Level '+p.level,'Every adventure adds a little to your story. All players begin at Level 0.')+'<div class="privacy-notice"><strong>'+earned+' total XP</strong><br>'+p.inLevel+' of '+p.target+' XP until Level '+(p.level+1)+'.</div><div class="tags"><span class="tag">'+(first?'FIRST SPARK UNLOCKED':'FIRST SPARK LOCKED')+'</span><span class="tag">'+save.done.length+' / '+QUESTS.length+' STARTER CHAPTERS</span></div><p class="small">This preview counts each quest once from the local chapter ledger. Account-backed progression, verification and shared rewards are future work.</p><div class="actions">'+uiButton('Continue quests','all-quests')+'</div>','progress');
+ const doneToday=DAILY_QUESTS.filter(q=>dailyDone(save,q.id)).length;
+ openPanel(title('YOUR JOURNEY','Level '+p.level,'Every real adventure adds a page to your story. All players begin at Level 0.')+
+  '<div class="privacy-notice"><strong>'+earned+' total local XP</strong><br>'+p.inLevel+' of '+p.target+' XP toward Level '+(p.level+1)+'.</div>'+
+  '<div class="tags"><span class="tag">'+(first?'FIRST SPARK UNLOCKED':'FIRST SPARK LOCKED')+'</span>'+
+  '<span class="tag">'+save.done.length+' / '+QUESTS.length+' STARTER CHAPTERS</span>'+
+  '<span class="tag">'+doneToday+' / '+DAILY_QUESTS.length+' TODAY</span>'+
+  '<span class="tag">'+save.runs.length+' DAILY CHAPTERS</span></div>'+
+  '<p class="small">Daily XP renews on your device\'s local calendar day. Rewards are self-reported and stored in this browser; there is no secure XP ledger or anti-tamper verification yet.</p>'+
+  '<div class="actions">'+uiButton('Explore today','today-board')+uiButton('Open Book','book','','secondary')+'</div>','progress');
 }
 function openPrivacy(){
  openPanel(title('ALWAYS YOUR CHOICE','Location & privacy','You can enjoy the entire first game without location access.')+'<div class="privacy-notice"><strong>Location sharing: OFF</strong><br>The Fold does not stream your location to friends, follow you in the background, or store your route. This prototype has no connected players.</div><p>Loading the real map contacts an external tile service for the displayed region. Locating yourself once requests browser permission and then loads nearby tiles, which can reveal that approximate region to the map provider.</p><div class="actions">'+uiButton('Use location once','locate-once')+uiButton('Real map, no GPS','ask-live','','secondary')+uiButton('Clear location','clear-location','','secondary')+'</div><p class="small">Your position is held only in memory. Location sharing with other people is not implemented. Never rely on this game for safety monitoring.</p>','privacy');
@@ -181,7 +189,7 @@ function openSettings(){
 function askLive(){
  openPanel(title('OPTIONAL MAP FEATURE','Unfold the real map','This uses MapLibre and OpenFreeMap. The Fold recolors geographic map layers but does not verify venues or activities. The tile provider receives requests for the region you view. You can pan and place a temporary personal marker without turning on GPS.')+'<div class="privacy-notice">The illustrated demo is fully playable offline. Tap the real map to place your own temporary activity mark. It is neither a verified venue nor a saved route; nothing is shared with another player.</div><div class="actions">'+uiButton('Load real map','enable-live')+uiButton('Keep illustrated map','close','','secondary')+'</div>','ask-live');
 }
-function saveNote(id){const record=save.done.find(x=>x.id===id);if(!record)return;record.note=cleanText($('#editNote')?.value,300);persist();openBook(id);toast('Your story has been updated');}
+function saveNote(id){const chapter=resolveChapter(id);if(!chapter)return;chapter.entry.note=cleanText($('#editNote')?.value,300);persist();openBook(id);toast('Your story has been updated');}
 function exportSave(){
  try{const blob=new Blob([JSON.stringify({ ...normalizeSave(save),exportedAt:new Date().toISOString() },null,2)],{type:'application/json'});const uri=URL.createObjectURL(blob),a=document.createElement('a');a.href=uri;a.download='the-fold-adventure-book.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(uri),1500);toast('Save downloaded to your device');}catch{toast('This browser could not export the file');}
 }
@@ -192,6 +200,18 @@ function finish(id){
  if(!result.awarded){toast(result.reason==='already-complete'?'This chapter is already complete':'Finish both activities to earn XP');return;}
  save=result.save;persist();closePanel();updateHUD();showReward(q,result);
  setTimeout(()=>{if($('#panel').hidden)openBook(id);},1880);
+}
+function finishDaily(id){
+ const q=DAILY_QUEST_MAP[id];if(!q)return;
+ const day=localDay(),note=cleanText($('#questNote')?.value,300);
+ const result=completeDaily(save,id,note);
+ if(!result.awarded){
+  const reason=result.reason==='already-complete'?'Today\'s reward has already been recorded':
+   result.reason==='save-full'?'Local journal is full. Export your chapters before resetting.':'Complete both checkpoints before claiming XP';
+  toast(reason);return;
+ }
+ save=result.save;persist();closePanel();updateHUD();showReward(q,result);
+ setTimeout(()=>{if($('#panel').hidden)openBook('daily:'+day+':'+id);},1880);
 }
 function updateMapContext(){
  const live=$('#game').dataset.map==='live';
@@ -301,20 +321,25 @@ function demoMap(){
 function resetConfirm(){
  openPanel(title('START A NEW STORY','Clear your local progress?','This permanently clears your saved chapters, memories and earned XP on this device.')+'<div class="actions">'+uiButton('Yes, start again','reset','','danger')+uiButton('Keep my story','settings','','secondary')+'</div>','reset-confirm');
 }
-function resetSave(){save=newSave();persist();closePanel();updateHUD();$('#intro').hidden=false;$('#introPlay').focus();clearLocation();toast('Local progress reset');}
+function resetSave(){save=newSave();questTab='today';bookPage=0;persist();closePanel();updateHUD();$('#intro').hidden=false;$('#introPlay').focus();clearLocation();toast('Local progress reset');}
 function handleAction(name,trigger){
  const id=trigger.dataset.id;
  switch(name){
   case 'close':closePanel();break;
   case 'all-quests':openQuests();break;
+  case 'today-board':openQuests('today');break;
+  case 'quest-tab':openQuests(trigger.dataset.tab);break;
+  case 'book-older':bookPage++;openBook();break;
+  case 'book-newer':bookPage=Math.max(0,bookPage-1);openBook();break;
   case 'book':openBook();break;
   case 'open-book':openBook(id);break;
   case 'privacy':openPrivacy();break;
   case 'settings':openSettings();break;
   case 'finish':finish(id);break;
+  case 'finish-daily':finishDaily(id);break;
   case 'edit-note':editNote(id);break;
   case 'save-note':saveNote(id);break;
-  case 'clear-note':{const x=save.done.find(x=>x.id===id);if(x)x.note='';persist();openBook(id);toast('Memory text cleared');break;}
+  case 'clear-note':{const chapter=resolveChapter(id);if(chapter){chapter.entry.note='';persist();openBook(id);toast('Memory text cleared');}break;}
   case 'save-name':save.name=cleanText($('#playerName')?.value,28)||'Explorer';persist();openSettings();toast('Name updated');break;
   case 'export':exportSave();break;
   case 'confirm-reset':resetConfirm();break;
@@ -336,7 +361,7 @@ function bind(){
  $('#mapLiveButton').addEventListener('click',askLive);
  $('#mapMeButton').addEventListener('click',openPrivacy);
  $('#mapDemoButton').addEventListener('click',demoMap);
- $('#nextGo').addEventListener('click',()=>{$('#nextGo').dataset.quest?openQuest($('#nextGo').dataset.quest):openBook();});
+ $('#nextGo').addEventListener('click',()=>{const button=$('#nextGo');if(button.dataset.quest)openQuest(button.dataset.quest);else if(button.dataset.daily)openDailyQuest(button.dataset.daily);else openBook();});
  document.addEventListener('click',event=>{
   const nav=event.target.closest('[data-panel]');if(nav){
    if(nav.dataset.panel==='map')closePanel();
@@ -345,14 +370,23 @@ function bind(){
    if(nav.dataset.panel==='book')openBook();
    return;
   }
+  const daily=event.target.closest('[data-daily-quest]');if(daily){openDailyQuest(daily.dataset.dailyQuest);return;}
   const quest=event.target.closest('[data-quest]');if(quest){openQuest(quest.dataset.quest);return;}
   const book=event.target.closest('[data-book-id]');if(book){openBook(book.dataset.bookId);return;}
   const action=event.target.closest('[data-action]');if(action)handleAction(action.dataset.action,action);
  });
  document.addEventListener('change',event=>{
+  const daily=event.target.closest('input[data-daily-step-id]');
+  if(daily){
+   const id=daily.dataset.dailyStepId,num=Number(daily.dataset.stepNum);
+   save=setDailyStep(save,id,num,daily.checked);persist();openDailyQuest(id);
+   $('#panel input[data-daily-step-id="'+id+'"][data-step-num="'+num+'"]')?.focus();
+   return;
+  }
   const el=event.target.closest('input[data-step-id]');if(!el)return;
-  const id=el.dataset.stepId;
-  save=setStep(save,id,Number(el.dataset.stepNum),el.checked);persist();openQuest(id);
+  const id=el.dataset.stepId,num=Number(el.dataset.stepNum);
+  save=setStep(save,id,num,el.checked);persist();openQuest(id);
+  $('#panel input[data-step-id="'+id+'"][data-step-num="'+num+'"]')?.focus();
  });
  document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!$('#panel').hidden){closePanel();return;}
@@ -364,7 +398,7 @@ function bind(){
    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
   }
  });
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persist();});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persist();else updateHUD();});
 }
 function init(){updateHUD();bind();updateMapContext();$('#intro').hidden=Boolean(save.seenIntro);if(!save.seenIntro)$('#introPlay').focus();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
