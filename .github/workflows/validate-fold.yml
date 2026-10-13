@@ -1,0 +1,26 @@
+name: The Fold playable review
+on:
+  pull_request:
+    paths:
+      - 'public/fold/**'
+      - 'tests/fold-core.test.mjs'
+      - '.github/workflows/validate-fold.yml'
+jobs:
+  playable-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check game source
+        run: |
+          node --check public/fold/fold.js
+          node --check public/fold/core.mjs
+          node --test tests/fold-core.test.mjs
+      - name: Upload playable static review
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-fold-local-playtest
+          path: public/fold/
+          retention-days: 14
