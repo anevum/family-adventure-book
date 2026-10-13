@@ -26,6 +26,9 @@ async function withMapTimeout(work,ms=14000){
 function readLocal(){try{return loadSave(localStorage.getItem(SAVE_KEY));}catch{return newSave();}}
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));return true;}catch{toast('Device saving is unavailable. Your progress may disappear.');return false;}}
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),3600);}
+// IDs come from game code, never user-entered text; SVG references cannot escape this sprite.
+const GLYPH_IDS=new Set(['fold','map','quests','party','book','gear','compass','locate','demo','shield','xp','arrow','check','first','us','home','wonder','memory','kind','ritual']);
+function glyph(id){const safe=GLYPH_IDS.has(id)?id:'first';return '<svg class="glyph" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><use href="./icons.svg#ic-'+safe+'"></use></svg>';}
 function point(xp){return progression(xp);}
 function updateHUD(){
  const p=point(earnedXP(save));
@@ -36,16 +39,20 @@ function updateHUD(){
  $('#nextMeta').textContent=next?'YOUR NEXT ADVENTURE':'ALL STARTER QUESTS FINISHED';
  $('#nextDesc').textContent=next?.description||'Your next chapter is yours to imagine.';
  $('#nextGo').dataset.quest=next?.id||'';
+ const nextSymbol=$('.next-icon use');if(nextSymbol)nextSymbol.setAttribute('href','./icons.svg#ic-'+(next?.id||'book'));
+ const nextButton=$('#nextGo span');if(nextButton)nextButton.textContent=next?'BEGIN':'READ';
  $('#privacyStatus').textContent=lastPosition?'USED ONCE · PRIVATE':'LOCATION OFF';
 }
 function uiButton(label,action,extra='',kind='primary'){return '<button type="button" class="'+kind+'" data-action="'+action+'" '+extra+'>'+escapeHtml(label)+'</button>';}
 function openPanel(html,id){
  if($('#panel').hidden)returnFocus=document.activeElement;
- $('#panelBody').innerHTML=html;openView=id;$('#panel').hidden=false;$('#scrim').hidden=false;
- $('#panelClose').focus();$$('.dock button').forEach(b=>b.removeAttribute('aria-current'));
+ $('#panelBody').innerHTML=html;openView=id;$('#panel').dataset.view=id;$('#game').dataset.view=id;$('#panel').hidden=false;$('#scrim').hidden=false;
+ $('#panelClose').focus();
+ const selected=id==='quests'||id.startsWith('quest:')?'quests':id==='fold'?'fold':id.startsWith('book')||id.startsWith('edit:')?'book':'';
+ $$('.dock button').forEach(b=>{if(selected&&b.dataset.panel===selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
 }
 function closePanel(){
- $('#panel').hidden=true;$('#scrim').hidden=true;$('#panelBody').innerHTML='';openView='';
+ $('#panel').hidden=true;$('#scrim').hidden=true;$('#panelBody').innerHTML='';$('#panel').dataset.view='';$('#game').dataset.view='';openView='';
  $$('.dock button').forEach(b=>{if(b.dataset.panel==='map')b.setAttribute('aria-current','page');});
  if(returnFocus?.isConnected)returnFocus.focus();returnFocus=null;
 }
@@ -53,7 +60,7 @@ function title(kicker,title,text=''){return '<span class="eyebrow">'+escapeHtml(
 function openQuests(){
  const choices=QUESTS.map(q=>{
   const done=isDone(save,q.id),progress=stepProgress(save,q.id).filter(Boolean).length;
-  return '<button type="button" class="quest-choice'+(done?' done':'')+'" data-quest="'+q.id+'"><span class="symbol">'+(done?'✓':escapeHtml(q.symbol))+'</span><span><strong>'+escapeHtml(q.title)+'</strong><small>'+(done?'Chapter saved':escapeHtml(q.kind)+' · '+progress+'/'+q.steps.length+' steps · +'+q.xp+' XP')+'</small></span><span class="go-right">›</span></button>';
+  return '<button type="button" class="quest-choice'+(done?' done':'')+'" data-quest="'+q.id+'"><span class="symbol">'+glyph(done?'check':q.id)+'</span><span><strong>'+escapeHtml(q.title)+'</strong><small>'+(done?'Chapter saved':escapeHtml(q.kind)+' · '+progress+'/'+q.steps.length+' steps · +'+q.xp+' XP')+'</small></span><span class="go-right">›</span></button>';
  }).join('');
  openPanel(title('YOUR WORLD IS YOUR GAME','Choose an adventure','Play at home, outside, alone or with someone you care about. No GPS, money or photos required.')+'<div class="stack">'+choices+'</div><p class="small">Each starter quest awards XP once. This is an offline device prototype, not shared family progress.</p>','quests');
 }
@@ -64,7 +71,7 @@ function openQuest(id){
  const currentNote=save.done.find(d=>d.id===id)?.note||'';
  const actions=done?uiButton('READ YOUR CHAPTER','open-book','data-id="'+id+'"')+uiButton('Back to quests','all-quests','','secondary'):uiButton('FINISH CHAPTER · +'+q.xp+' XP','finish','data-id="'+id+'" '+(!flags.every(Boolean)?'disabled':''))+uiButton('Back','all-quests','','secondary');
  const extra=done?'<div class="privacy-notice">This quest is complete and its XP cannot be earned again. '+(currentNote?'You saved a private note.':'You chose not to save a note.')+'</div>':'<label class="form-label" for="questNote">A little memory (optional)</label><textarea id="questNote" maxlength="300" placeholder="A moment you want to remember..."></textarea>';
- openPanel(title(escapeHtml(q.kind).toUpperCase()+' · +'+q.xp+' XP',q.title,q.description)+'<div class="tags"><span class="tag">NO GPS REQUIRED</span><span class="tag">SOLO OR TOGETHER</span></div><p class="small">'+escapeHtml(q.suggestion)+'</p>'+checks+extra+'<div class="actions">'+actions+'</div>','quest:'+id);
+ openPanel('<div class="quest-hero"><span class="quest-crest">'+glyph(id)+'</span><span class="quest-meta">YOUR ADVENTURE <b>·</b> +'+q.xp+' XP</span></div>'+title(escapeHtml(q.kind).toUpperCase()+' · +'+q.xp+' XP',q.title,q.description)+'<div class="tags"><span class="tag">NO GPS REQUIRED</span><span class="tag">SOLO OR TOGETHER</span></div><p class="small">'+escapeHtml(q.suggestion)+'</p>'+checks+extra+'<div class="actions">'+actions+'</div>','quest:'+id);
 }
 function openBook(selectedId){
  const entries=save.done.slice().reverse();
@@ -72,9 +79,9 @@ function openBook(selectedId){
   const entry=save.done.find(x=>x.id===selectedId),q=QUEST_MAP[selectedId];
   if(!entry||!q){openBook();return;}
   const text=entry.note?escapeHtml(entry.note):'A quiet adventure became another page in your story.';
-  openPanel(title('THE ADVENTURE BOOK · '+escapeHtml(entry.when||'SAVED CHAPTER'),q.title)+'<p>'+text+'</p><div class="tags"><span class="tag">✦ '+q.xp+' XP EARNED</span><span class="tag">PRIVATE TO THIS DEVICE</span></div><div class="actions">'+uiButton('Edit your note','edit-note','data-id="'+selectedId+'"')+uiButton('All chapters','book','','secondary')+'</div><p class="small">Changing or clearing a memory does not change earned XP. No photographs or coordinates were collected.</p>','book:'+selectedId);return;
+  openPanel(title('THE ADVENTURE BOOK · '+escapeHtml(entry.when||'SAVED CHAPTER'),q.title)+'<div class="book-stamp">'+glyph('book')+'<span>CHAPTER SAVED <b>·</b> '+q.xp+' EXPERIENCE POINTS</span></div><p class="book-memory">'+text+'</p><div class="tags"><span class="tag">+'+q.xp+' XP EARNED</span><span class="tag">PRIVATE TO THIS DEVICE</span></div><div class="actions">'+uiButton('Edit your note','edit-note','data-id="'+selectedId+'"')+uiButton('All chapters','book','','secondary')+'</div><p class="small">Changing or clearing a memory does not change earned XP. No photographs or coordinates were collected.</p>','book:'+selectedId);return;
  }
- const cards=entries.length?entries.map(x=>'<button type="button" class="book-entry" data-book-id="'+x.id+'"><span class="symbol">▤</span><span><strong>'+escapeHtml(QUEST_MAP[x.id].title)+'</strong><small>'+escapeHtml(x.when)+' · '+(x.note?'Memory saved':'Completed chapter')+'</small></span></button>').join(''):'<div class="empty"><strong>Your book is waiting.</strong>Finish a quest and your first chapter will appear here.</div>';
+ const cards=entries.length?entries.map(x=>'<button type="button" class="book-entry" data-book-id="'+x.id+'"><span class="symbol">'+glyph('book')+'</span><span><strong>'+escapeHtml(QUEST_MAP[x.id].title)+'</strong><small>'+escapeHtml(x.when)+' · '+(x.note?'Memory saved':'Completed chapter')+'</small></span></button>').join(''):'<div class="empty"><strong>Your book is waiting.</strong>Finish a quest and your first chapter will appear here.</div>';
  openPanel(title('YOUR STORY, PAGE BY PAGE','The Adventure Book','A private collection of adventures you have chosen to remember.')+'<div class="stack">'+cards+'</div><div class="actions">'+uiButton('Explore quests','all-quests')+uiButton('Export your save','export','','secondary')+'</div><p class="small">Browser-only prototype. Clearing your browsing data can erase these chapters; export a copy if you want to keep them.</p>','book');
 }
 function editNote(id){
@@ -82,11 +89,11 @@ function editNote(id){
  openPanel(title('A PAGE OF YOUR BOOK','Keep this memory','The details are yours. You can change or clear this note anytime.')+'<label class="form-label" for="editNote">Private memory</label><textarea id="editNote" maxlength="300">'+escapeHtml(entry.note)+'</textarea><div class="actions">'+uiButton('Save this page','save-note','data-id="'+id+'"')+uiButton('Clear note','clear-note','data-id="'+id+'"','secondary')+'</div><p class="small">Deleting this note keeps your completed quest and earned XP intact.</p>','edit:'+id);
 }
 function openFold(){
- openPanel(title('YOUR PEOPLE · YOUR STORY','My Fold','Your Fold starts with you. Couples can eventually invite their partner, and adults can build private family groups when real account and privacy systems are ready.')+'<div class="party-slot"><span class="symbol">✿</span><div><strong>'+escapeHtml(save.name)+'</strong><p class="small" style="margin:2px 0">Solo explorer · Level '+point(earnedXP(save)).level+'</p></div></div><div class="privacy-notice"><strong>Real multiplayer is not active in this prototype.</strong><br>Invitations, other members, cloud saves and location sharing require authenticated accounts and individual consent. No imaginary members are displayed as real.</div><div class="actions">'+uiButton('Start an adventure','all-quests')+uiButton('Your privacy','privacy','','secondary')+'</div>','fold');
+ openPanel(title('YOUR PEOPLE · YOUR STORY','My Fold','Your Fold starts with you. Couples can eventually invite their partner, and adults can build private family groups when real account and privacy systems are ready.')+'<div class="party-slot"><span class="symbol">'+glyph('party')+'</span><div><strong>'+escapeHtml(save.name)+'</strong><p class="small" style="margin:2px 0">Solo explorer · Level '+point(earnedXP(save)).level+'</p></div></div><div class="privacy-notice"><strong>Real multiplayer is not active in this prototype.</strong><br>Invitations, other members, cloud saves and location sharing require authenticated accounts and individual consent. No imaginary members are displayed as real.</div><div class="actions">'+uiButton('Start an adventure','all-quests')+uiButton('Your privacy','privacy','','secondary')+'</div>','fold');
 }
 function openProgress(){
  const earned=earnedXP(save),p=point(earned),first=isDone(save,'first');
- openPanel(title('YOUR JOURNEY','Level '+p.level,'Every adventure adds a little to your story. All players begin at Level 0.')+'<div class="privacy-notice"><strong>'+earned+' total XP</strong><br>'+p.inLevel+' of '+p.target+' XP until Level '+(p.level+1)+'.</div><div class="tags"><span class="tag">'+(first?'✦ FIRST SPARK UNLOCKED':'◇ FIRST SPARK LOCKED')+'</span><span class="tag">'+save.done.length+' / '+QUESTS.length+' STARTER CHAPTERS</span></div><p class="small">This preview counts each quest once from the local chapter ledger. Account-backed progression, verification and shared rewards are future work.</p><div class="actions">'+uiButton('Continue quests','all-quests')+'</div>','progress');
+ openPanel(title('YOUR JOURNEY','Level '+p.level,'Every adventure adds a little to your story. All players begin at Level 0.')+'<div class="privacy-notice"><strong>'+earned+' total XP</strong><br>'+p.inLevel+' of '+p.target+' XP until Level '+(p.level+1)+'.</div><div class="tags"><span class="tag">'+(first?'FIRST SPARK UNLOCKED':'FIRST SPARK LOCKED')+'</span><span class="tag">'+save.done.length+' / '+QUESTS.length+' STARTER CHAPTERS</span></div><p class="small">This preview counts each quest once from the local chapter ledger. Account-backed progression, verification and shared rewards are future work.</p><div class="actions">'+uiButton('Continue quests','all-quests')+'</div>','progress');
 }
 function openPrivacy(){
  openPanel(title('ALWAYS YOUR CHOICE','Location & privacy','You can enjoy the entire first game without location access.')+'<div class="privacy-notice"><strong>Location sharing: OFF</strong><br>The Fold does not stream your location to friends, follow you in the background, or store your route. This prototype has no connected players.</div><p>Loading the real map contacts an external tile service for the displayed region. Locating yourself once requests browser permission and then loads nearby tiles, which can reveal that approximate region to the map provider.</p><div class="actions">'+uiButton('Use location once','locate-once')+uiButton('Real map, no GPS','ask-live','','secondary')+uiButton('Clear location','clear-location','','secondary')+'</div><p class="small">Your position is held only in memory. Location sharing with other people is not implemented. Never rely on this game for safety monitoring.</p>','privacy');
@@ -161,7 +168,7 @@ function placeBookmark(point){
  clearBookmark();
  const el=document.createElement('button');
  el.type='button';el.className='live-quest-pin';
- el.textContent='✦';el.title='Your temporary quest mark';
+ el.innerHTML=glyph('first');el.title='Your temporary quest mark';
  el.setAttribute('aria-label','Open your temporary quest mark');
  el.addEventListener('click',event=>{event.stopPropagation();openBookmark();});
  mapBookmark=new maplibre.Marker({element:el,anchor:'bottom'}).setLngLat(point).addTo(mapInstance);
