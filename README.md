@@ -34,4 +34,4 @@ The prototype is **not a private family portal**. `robots.txt` and `noindex` dis
 - `docs/`: game design and production planning
 - `tests/`: source checks
 
-The repository is public but has **no open-source license granted** at this stage. No connection to ANEVUM's production repositories is required.
+The source in this repository is available under the [Apache License 2.0](LICENSE). Names and branding are not licensed as trademarks. No connection to ANEVUM's production repositories is required.
