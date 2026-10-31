@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test release-gate denial and authorization policies
-        run: node --test tests/verify-release-gate.test.mjs
+        run: node --test tests/verify-release-gate.test.mjs tests/main-ruleset.test.mjs
       - name: Verify source smoke test remains successful
         run: node tests/check-release.mjs
 # This workflow never deploys. Cloudflare production trigger remains unchanged.
