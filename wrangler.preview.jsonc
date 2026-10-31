@@ -1,0 +1,8 @@
+{
+  // Only for owner-protected, nonproduction Preview build verification.
+  // No routes, data bindings, or production config changes.
+  "name": "family-adventure-book",
+  "compatibility_date": "2026-10-30",
+  "assets": { "directory": "./public" },
+  "previews": {}
+}
