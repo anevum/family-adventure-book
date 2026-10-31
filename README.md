@@ -1,6 +1,6 @@
 # The Adventure Book — Evergrove
 
-Independent animated family-adventure-game prototype. The project has its own source repository and an existing Cloudflare Worker. Public availability and intended address require verification.
+Independent animated family-adventure-game prototype. **Parked; retirement candidate.** The source and existing Worker are preserved while usage, browser-local saves, and recovery are verified. There is no current development commitment.
 
 ## Status — v0.2, public source / local-save demo
 
@@ -20,7 +20,7 @@ The current build resolves Wrangler at build time and generates its configuratio
 
 The prototype is **not a private family portal**. `robots.txt` and `noindex` discourage search engines; they are NOT authentication. Do not upload actual family memories until server-side authentication, per-family data isolation, protected media storage and backups are implemented. See `docs/SECURITY.md`.
 
-## Continuing development
+## Source layout
 
 - `public/index.html`: markup, world SVG
 - `public/assets/style.css`: layout and animation
