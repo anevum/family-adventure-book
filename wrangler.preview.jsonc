@@ -1,0 +1,11 @@
+{
+  // Preview-only config. Production release remains owned by the existing
+  // Cloudflare main-branch trigger and is not managed by this file.
+  "name": "family-adventure-book",
+  "compatibility_date": "2026-10-30",
+  "assets": {
+    "directory": "./public"
+  },
+  // No production services or data bindings; the prototype is static.
+  "previews": {}
+}
