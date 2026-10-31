@@ -14,7 +14,7 @@ The public GitHub repository contains **only demonstration source code**. No pas
 
 ## Existing Cloudflare release path
 
-Cloudflare Builds is connected to this repository and deploys changes from `main` to the existing `family-adventure-book` Worker using `npx wrangler deploy`. The build's existing watch-path configuration excludes root `README.md` changes. Other matching changes may deploy automatically, independently of the repository's GitHub Actions checks. Do not connect a second deployment mechanism or assume a successful test alone gates release.
+Cloudflare Builds is connected to this repository and deploys changes from `main` to the existing `family-adventure-book` Worker. Its build command is `node tests/check-release.mjs`, followed by `npx wrangler deploy`. That source smoke check was verified locally; its end-to-end behavior in Cloudflare has not yet been exercised. Root `README.md` changes are excluded from the build watch paths. Other matching changes may deploy automatically, independently of the repository's GitHub Actions checks. Do not connect a second deployment mechanism or assume the smoke check proves release readiness.
 
 The current build resolves Wrangler at build time and generates its configuration during deployment. The tool version, credential scope, route/access policy and rollback procedure need review. Track this work in [issue #11](https://github.com/anevum/family-adventure-book/issues/11).
 
